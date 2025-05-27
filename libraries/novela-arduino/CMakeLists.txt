@@ -23,7 +23,9 @@ file(GLOB_RECURSE NOVELA_FILES ${NOVELA_LIB_SOURCE_DIR}/*.cpp ${NOVELA_ARDUINO_S
 
 add_executable(novela-arduino ${NOVELA_FILES}
   src/gfx_canvas.cpp
-  src/gfx_canvas.h)
+  src/gfx_canvas.h
+  src/arduino_clock.cpp
+  src/arduino_clock.h)
 add_dependencies(novela-arduino build_novela_arduino)
 target_link_libraries(novela-arduino PRIVATE novela-cpp)
 

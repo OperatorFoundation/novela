@@ -7,13 +7,16 @@ enable_testing()
 # Compile novela-cpp library for local build machine architecture
 set(NOVELA_LIB_DIR ${CMAKE_SOURCE_DIR}/libraries/novela-cpp)
 set(NOVELA_LIB_SOURCE_DIR ${NOVELA_LIB_DIR}/src)
-include_directories(${NOVELA_LIB_SOURCE_DIR})
+set(VTERM_LIB_DIR ${CMAKE_SOURCE_DIR}/libraries/vterm)
+set(VTERM_LIB_SOURCE_DIR ${VTERM_LIB_DIR}/src)
+
+include_directories(${NOVELA_LIB_SOURCE_DIR}, ${VTERM_LIB_SOURCE_DIR})
 file(GLOB_RECURSE NOVELA_FILES ${NOVELA_LIB_SOURCE_DIR}/*.cpp)
 add_library(novela-cpp-lib STATIC ${NOVELA_FILES}
-  src/canvas.cpp
-  src/canvas.h
-  src/novela.cpp
-  src/novela.h)
+  src/cursor.cpp
+  src/cursor.h
+  src/bell.cpp
+  src/bell.h)
 
 target_include_directories(novela-cpp-lib PUBLIC ${NOVELA_LIB_SOURCE_DIR})
 

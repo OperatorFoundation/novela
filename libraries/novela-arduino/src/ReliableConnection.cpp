@@ -7,6 +7,11 @@ ReliableConnection::ReliableConnection(int tx, int rx)
   Serial2.setRX(rx);
 }
 
+int ReliableConnection::tryReadOne() const
+{
+  return Serial2.read();
+}
+
 char ReliableConnection::readOne() const
 {
   // Wait for serial port to be ready

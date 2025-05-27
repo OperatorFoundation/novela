@@ -13,7 +13,7 @@
 class GfxCanvas : public Canvas
 {
   public:
-    GfxCanvas();
+    GfxCanvas(DVItext1& gfx);
 
     uint16_t getHeight();
     uint16_t getWidth();
@@ -33,7 +33,7 @@ class GfxCanvas : public Canvas
     void verticalScroll(int16_t y);
 
   private:
-    DVItext1 gfx;
+    DVItext1& gfx;
     unsigned int x = 0;
     unsigned int y = 0;
 };

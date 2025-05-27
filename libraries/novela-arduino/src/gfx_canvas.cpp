@@ -6,10 +6,11 @@
 
 #include <cstring>
 
-GfxCanvas::GfxCanvas()
+GfxCanvas::GfxCanvas(DVItext1& gfx) : gfx(gfx)
 {
-  gfx = DVItext1(DVI_RES_640x240p60, adafruit_dvibell_cfg);
   gfx.begin();
+  gfx.fillScreen(0);
+  gfx.setCursor(0, 0);
 }
 
 uint16_t GfxCanvas::getHeight()

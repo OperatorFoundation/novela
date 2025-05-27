@@ -11,6 +11,7 @@ class ReliableConnection : public Connection
     ReliableConnection(int tx, int rx);
     ~ReliableConnection() {}
 
+    int tryReadOne() const;
     char readOne() const;
     bytes read(int size) const;
     void write(bytes bs) const;

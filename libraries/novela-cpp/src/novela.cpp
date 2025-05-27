@@ -10,6 +10,7 @@ void Novela::process(uint8_t c)
   {
     case display:
       process_display(c);
+      break;
 
     case esc:
       if(c == '[')
@@ -21,12 +22,15 @@ void Novela::process(uint8_t c)
         mode = display;
         process_display(c);
       }
+      break;
 
     case command:
       process_command(c);
+      break;
 
     default:
       mode = display;
+      return;
   }
 }
 
@@ -71,7 +75,9 @@ void Novela::process_control(uint8_t c)
       process_backspace();
       break;
     case 9: // horizontal tab
-      canvas.setX(canvas.getX() + 8);
+      canvas.setX((canvas.getX() + 8) & (~7));
+      checkWrap();
+      checkScroll();
       break;
     case 10: // \n, newline
       canvas.setY(canvas.getY() + 1);
@@ -131,6 +137,18 @@ void Novela::process_space()
 void Novela::process_printable(uint8_t c)
 {
   canvas.drawPixel(canvas.getX(), canvas.getY(), c);
+  canvas.incrementX();
+
+  if(checkWrap())
+  {
+    canvas.setX(0);
+    canvas.incrementY();
+  }
+
+  if(checkScroll())
+  {
+    scroll();
+  }
 }
 
 void Novela::process_backspace()
@@ -169,26 +187,7 @@ void Novela::process_command(uint8_t c)
     case '8':
     case '9':
     {
-      const int parameter = c - '0';
-      if(parameters.empty())
-      {
-        parameters.push_back(parameter);
-      }
-      else
-      {
-        const std::optional<unsigned int> oldParameter = parameters.back();
-        parameters.pop_back();
-
-        if(oldParameter)
-        {
-          const unsigned int newParameter = (*oldParameter) * 10 + parameter;
-          parameters.emplace_back(newParameter);
-        }
-        else
-        {
-          parameters.emplace_back(parameter);
-        }
-      }
+      process_parameter_digit(c);
       break;
     }
     case ';':
@@ -223,6 +222,112 @@ void Novela::process_command(uint8_t c)
     }
   }
 }
+
+void Novela::process_modeset(uint8_t c)
+{
+  switch(c)
+  {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      process_parameter_digit(c);
+      break;
+    case 'h':
+    case 'l':
+      for(auto parameter : parameters)
+      {
+        if(parameter)
+        {
+          if(c == 'h')
+          {
+            setMode(*parameter, 1);
+          }
+          else
+          {
+            setMode(*parameter, 0);
+          }
+        }
+      }
+
+      mode = display;
+      break;
+
+    default:
+      mode = display;
+      return;
+  }
+}
+
+void setMode(unsigned int parameter, int onOff)
+{
+  switch(parameter)
+  {
+    case 1: // Application Cursor Keys
+    case 3: // 80/132 Column Mode (DECCOLM)
+    case 5: // Reverse Video (DECSCNM)
+    case 6: // Origin Mode (DECOM)
+    case 7: // Auto-wrap Mode (DECAWM)
+    case 8: // Auto-repeat Keys (DECARM)
+    case 9: // Mouse tracking
+    case 12: // Send/receive cursor position reports
+    case 18: // Print form feed mode (DECPFF)
+    case 19: // Print form feed (DECPFF)
+    case 25: // Show/hide cursor
+    case 42: // National Replacement Character Sets (DECNRCM)
+    case 45: // Reverse-wraparound Mode
+    case 47: // Use alternate screen buffer
+    case 66: // Application keypad mode (DECNKM)
+    case 69: // Left and right margin mode (DECLRMM)
+    case 95: // Clear screen on DECCOLM changes
+    case 1000: // Send mouse X/Y position on button press and release
+    case 1002: // Use hilite mouse tracking
+    case 1003: // Use all motion mouse tracking
+    case 1004: // Send focus in/out events
+    case 1005: // Enable UTF//8 mouse mode
+    case 1006: // Enable SGR mouse mode
+    case 1015: // Enable urxvt mouse mode
+    case 1047: // Use alternate screen buffer
+    case 1048: // Save/restore cursor position
+    case 1049: // Combined 1047 + 1048 mode
+    case 2004: // Bracketed paste mode
+      break;
+
+    default:
+      return;
+  }
+}
+
+void Novela::process_parameter_digit(uint8_t c)
+{
+  const int parameter = c - '0';
+  if(parameters.empty())
+  {
+    parameters.push_back(parameter);
+  }
+  else
+  {
+    const std::optional<unsigned int> oldParameter = parameters.back();
+    parameters.pop_back();
+
+    if(oldParameter)
+    {
+      const unsigned int newParameter = (*oldParameter) * 10 + parameter;
+      parameters.emplace_back(newParameter);
+    }
+    else
+    {
+      parameters.emplace_back(parameter);
+    }
+  }
+}
+
 
 bool Novela::checkWrap()
 {
