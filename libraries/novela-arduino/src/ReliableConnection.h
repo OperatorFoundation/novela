@@ -1,14 +1,12 @@
 #ifndef _RELIABLE_CONNECTION_H_
 #define _RELIABLE_CONNECTION_H_
 
-#include <Arduino.h>
-
 #include <Connection.h>
 
 class ReliableConnection : public Connection
 {
   public:
-    ReliableConnection(int tx, int rx);
+    ReliableConnection();
     ~ReliableConnection() {}
 
     int tryReadOne() const;

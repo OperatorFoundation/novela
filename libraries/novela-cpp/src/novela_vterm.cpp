@@ -9,10 +9,15 @@
 
 NovelaVterm* NovelaVterm::instance = nullptr;
 
-NovelaVterm::NovelaVterm(Canvas& canvas, Connection& connection, Clock& clock) : canvas(canvas), connection(connection), clock(clock)
+NovelaVterm::NovelaVterm(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger) : canvas(canvas), connection(connection), clock(clock), logger(logger)
 {
   instance = this;
+}
 
+// The begin function allows for nothing much to happen until Arduino setup() is concluded.
+// Therefore, this should be called at the end of setup().
+void NovelaVterm::begin()
+{
   int hpx = canvas.getHeight() - 1;
   int wpx = canvas.getWidth() - 1;
   int hc = hpx / CHAR_HEIGHT;
@@ -42,11 +47,11 @@ NovelaVterm::NovelaVterm(Canvas& canvas, Connection& connection, Clock& clock) :
 
   // Set callbacks
   screen_callbacks = {
-    .damage = damage_callback,
+    .damage = redraw,
     .moverect = NULL,
-    .movecursor = movecursor_callback,
-    .settermprop = screen_settermprop,
-    .bell = bell_callback,
+    .movecursor = move_cursor,
+    .settermprop = set_prop,
+    .bell = bell_rung,
     .resize = NULL,
     .sb_pushline = NULL,
     .sb_popline = NULL
@@ -59,20 +64,27 @@ NovelaVterm::NovelaVterm(Canvas& canvas, Connection& connection, Clock& clock) :
 
 void NovelaVterm::process(uint8_t b)
 {
+  logger.debug("NovelaVterm::process");
+
   const char c = static_cast<char>(b);
   vterm_input_write(instance->vt, &c, 1);
 }
 
-
 void NovelaVterm::setTitle(std::string newTitle)
 {
+  logger.debug("NovelaVterm::setTitle");
+  logger.debug(newTitle.c_str());
+
   if(!title.empty())
   {
+    logger.debug("empty");
     for(int i = 0; i < title.size(); i++)
     {
       canvas.drawPixel(0, i + 1, ' ');
     }
   }
+
+  logger.debug(".");
 
   title = newTitle;
 
@@ -95,15 +107,19 @@ void NovelaVterm::update()
   }
 }
 
-int damage_callback(VTermRect rect, void *user)
+// vterm event callbacks
+
+// Update an area of the screen
+int redraw(VTermRect rect, void *user)
 {
   if(NovelaVterm::instance == nullptr)
   {
     return -1;
   }
 
-  // A rectangle from (start_row,start_col) to (end_row,end_col) changed
+  NovelaVterm::instance->logger.debug("redraw");
 
+  // A rectangle from (start_row,start_col) to (end_row,end_col) changed
   for (int row = rect.start_row; row < rect.end_row; row++)
   {
     for (int col = rect.start_col; col < rect.end_col; col++)
@@ -149,12 +165,15 @@ int damage_callback(VTermRect rect, void *user)
   return 1;
 }
 
-int movecursor_callback(VTermPos pos, VTermPos oldpos, int visible, void *user)
+// Move the cursor
+int move_cursor(VTermPos pos, VTermPos oldpos, int visible, void *user)
 {
   if(NovelaVterm::instance == nullptr)
   {
     return -1;
   }
+
+  NovelaVterm::instance->logger.debug("move_cursor");
 
   NovelaVterm::instance->canvas.setX(pos.col + 1);
   NovelaVterm::instance->canvas.setY(pos.row + 1);
@@ -167,12 +186,15 @@ int movecursor_callback(VTermPos pos, VTermPos oldpos, int visible, void *user)
   return 1;
 }
 
-int bell_callback(void *user)
+// Ring the bell
+int bell_rung(void *user)
 {
   if(NovelaVterm::instance == nullptr)
   {
     return -1;
   }
+
+  NovelaVterm::instance->logger.debug("bell_rung");
 
   if(NovelaVterm::instance->bell)
   {
@@ -185,12 +207,15 @@ int bell_callback(void *user)
   }
 }
 
-int screen_settermprop(VTermProp prop, VTermValue *val, void *user)
+// Set a terminal property
+int set_prop(VTermProp prop, VTermValue *val, void *user)
 {
   if(NovelaVterm::instance == nullptr)
   {
     return -1;
   }
+
+  NovelaVterm::instance->logger.debug("set_prop");
 
   switch(prop)
   {
@@ -217,7 +242,7 @@ int screen_settermprop(VTermProp prop, VTermValue *val, void *user)
     }
 
     case VTERM_PROP_ICONNAME:
-      break; // FIXME
+      break; // Ignoring the icon name is standard on modern implementations
 
     case VTERM_PROP_ALTSCREEN:
       break; // FIXME
@@ -235,6 +260,7 @@ int screen_settermprop(VTermProp prop, VTermValue *val, void *user)
   return 1;
 }
 
+// The terminal has some requested information to send back to the host.
 void on_output(const char *cs, size_t len, void *user)
 {
   if(NovelaVterm::instance == nullptr)
@@ -242,6 +268,10 @@ void on_output(const char *cs, size_t len, void *user)
     return;
   }
 
+  NovelaVterm::instance->logger.debug("on_output");
+
   std::string s(cs, len);
   NovelaVterm::instance->connection.write(s);
 }
+
+// End vterm event callbacks

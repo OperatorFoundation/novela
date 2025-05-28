@@ -15,6 +15,7 @@
 #include "canvas.h"
 #include "Connection.h"
 #include "clock.h"
+#include "logger.h"
 
 class NovelaVterm
 {
@@ -24,6 +25,8 @@ class NovelaVterm
     Canvas& canvas;
     Connection& connection;
     Clock& clock;
+    Logger& logger;
+
     std::optional<Cursor> cursor = std::nullopt;
     std::optional<Bell> bell = std::nullopt;
 
@@ -31,8 +34,9 @@ class NovelaVterm
     VTermScreen *screen;
     VTermScreenCallbacks screen_callbacks;
 
-    explicit NovelaVterm(Canvas& canvas, Connection& connection, Clock& clock);
+    explicit NovelaVterm(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger);
 
+    void begin();
     void process(uint8_t c);
 
     void setTitle(std::string newTitle);
@@ -43,10 +47,10 @@ class NovelaVterm
 };
 
 int output_callback(const char *bytes, size_t len, void *user);
-int damage_callback(VTermRect rect, void *user);
-int movecursor_callback(VTermPos pos, VTermPos oldpos, int visible, void *user);
-int bell_callback(void *user);
-int screen_settermprop(VTermProp prop, VTermValue *val, void *user);
+int redraw(VTermRect rect, void *user);
+int move_cursor(VTermPos pos, VTermPos oldpos, int visible, void *user);
+int bell_rung(void *user);
+int set_prop(VTermProp prop, VTermValue *val, void *user);
 void on_output(const char *s, size_t len, void *user);
 
 #endif //NOVELA_VTERM_H

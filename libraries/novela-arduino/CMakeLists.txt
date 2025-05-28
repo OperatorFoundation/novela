@@ -25,7 +25,9 @@ add_executable(novela-arduino ${NOVELA_FILES}
   src/gfx_canvas.cpp
   src/gfx_canvas.h
   src/arduino_clock.cpp
-  src/arduino_clock.h)
+  src/arduino_clock.h
+  src/serial_logger.cpp
+  src/serial_logger.h)
 add_dependencies(novela-arduino build_novela_arduino)
 target_link_libraries(novela-arduino PRIVATE novela-cpp)
 

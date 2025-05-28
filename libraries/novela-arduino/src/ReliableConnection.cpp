@@ -1,10 +1,9 @@
 #include "ReliableConnection.h"
 
-ReliableConnection::ReliableConnection(int tx, int rx)
+#include <Arduino.h>
+
+ReliableConnection::ReliableConnection()
 {
-  Serial2.begin(15200);
-  Serial2.setTX(tx);
-  Serial2.setRX(rx);
 }
 
 int ReliableConnection::tryReadOne() const
@@ -15,7 +14,7 @@ int ReliableConnection::tryReadOne() const
 char ReliableConnection::readOne() const
 {
   // Wait for serial port to be ready
-  while(!Serial || !Serial.available())
+  while(!Serial2 || !Serial2.available())
   {
     delay(0.01);
   }
@@ -23,7 +22,7 @@ char ReliableConnection::readOne() const
   int b = -1;
   while(b == -1)
   {
-    b = Serial.read();
+    b = Serial2.read();
   }
 
   return (byte)b;
@@ -46,7 +45,7 @@ void ReliableConnection::write(bytes bs) const
 {
   for (byte b : bs)
   {
-    Serial.write(b); // Send each byte
+    Serial2.write(b); // Send each byte
   }
 }
 

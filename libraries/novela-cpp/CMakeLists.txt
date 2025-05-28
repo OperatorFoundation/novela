@@ -16,7 +16,9 @@ add_library(novela-cpp-lib STATIC ${NOVELA_FILES}
   src/cursor.cpp
   src/cursor.h
   src/bell.cpp
-  src/bell.h)
+  src/bell.h
+  src/logger.cpp
+  src/logger.h)
 
 target_include_directories(novela-cpp-lib PUBLIC ${NOVELA_LIB_SOURCE_DIR})
 
