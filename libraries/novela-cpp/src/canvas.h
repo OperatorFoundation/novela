@@ -7,27 +7,18 @@
 
 #include <cstdint>
 
+#include "colors.h"
+
 class Canvas
 {
   public:
     virtual ~Canvas() = default;
 
-    virtual uint16_t getHeight();
-    virtual uint16_t getWidth();
-    virtual uint16_t getX();
-    virtual uint16_t getY();
-    virtual void setX(uint16_t newX);
-    virtual void setY(uint16_t newY);
-    virtual void incrementX();
-    virtual void incrementY();
+    virtual uint16_t getHeight() = 0;
+    virtual uint16_t getWidth() = 0;
 
-    virtual void drawPixel(int16_t x, int16_t y, uint16_t color);
-    virtual void fillScreen(uint16_t color);
-    virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
-    virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
-    [[nodiscard]] virtual bool getPixel(int16_t x, int16_t y) const;
-
-    virtual void verticalScroll(int16_t y);
+    virtual void drawCharacter(int16_t x, int16_t y, char c) = 0;
+    virtual void fill(uint16_t color) = 0;
 };
 
 #endif //CANVAS_H

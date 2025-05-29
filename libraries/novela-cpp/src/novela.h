@@ -1,50 +1,56 @@
 //
-// Created by Dr. Brandon Wiley on 5/13/25.
+// Created by Dr. Brandon Wiley on 5/26/25.
 //
 
 #ifndef NOVELA_H
 #define NOVELA_H
 
+#include <bell.h>
 #include <cstdint>
+#include <cursor.h>
 #include <optional>
 #include <vector>
 
+#include <vterm.h>
 #include "canvas.h"
+#include "Connection.h"
+#include "clock.h"
+#include "logger.h"
 
 class Novela
 {
   public:
-    static constexpr int display = 1;
-    static constexpr int esc = 2;
-    static constexpr int command = 3;
-    static constexpr int modeset = 4;
+    static Novela *instance;
 
-    explicit Novela(Canvas& canvas) : canvas(canvas) {}
+    Canvas& canvas;
+    Connection& connection;
+    Clock& clock;
+    Logger& logger;
 
+    std::optional<Cursor> cursor = std::nullopt;
+    std::optional<Bell> bell = std::nullopt;
+
+    VTerm *vt;
+    VTermScreen *screen;
+    VTermScreenCallbacks screen_callbacks;
+
+    explicit Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger);
+
+    void begin();
     void process(uint8_t c);
 
+    void setTitle(std::string newTitle);
+    void update();
+
   private:
-    Canvas& canvas;
-    int mode = display;
-    std::vector<std::optional<unsigned int>> parameters;
-
-    void process_display(uint8_t c);
-    void process_command(uint8_t c);
-    void process_modeset(uint8_t c);
-
-    void process_control(uint8_t c);
-    void process_space();
-    void process_printable(uint8_t c);
-    void process_backspace();
-    void process_high(uint8_t c);
-    void process_escape();
-    void process_parameter_digit(uint8_t c);
-
-    void setMode(int parameter, int onOff);
-
-    bool checkWrap();
-    bool checkScroll();
-    void scroll();
+    std::string title;;
 };
+
+int output_callback(const char *bytes, size_t len, void *user);
+int redraw(VTermRect rect, void *user);
+int move_cursor(VTermPos pos, VTermPos oldpos, int visible, void *user);
+int bell_rung(void *user);
+int set_prop(VTermProp prop, VTermValue *val, void *user);
+void on_output(const char *s, size_t len, void *user);
 
 #endif //NOVELA_H

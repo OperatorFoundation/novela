@@ -5,35 +5,37 @@
 #ifndef GFX_CANVAS_H
 #define GFX_CANVAS_H
 
-#include <PicoDVI.h>
+#include <Adafruit_dvhstx.h>
 #include <canvas.h>
 
 #include <cstdint>
 
-class GfxCanvas : public Canvas
+// A GfxCanvas implements the generic Canvas interface using the Adafruit GFX library
+// GfxCanvas inherits from novela-cpp's Canvas so that it can implement its virtual functions
+// GfxCanvas inherits from Adafruit GFX's GFXcanvas16 in order get access to the private buffer instance variable
+class GfxCanvas : public Canvas, public GFXcanvas16
 {
   public:
-    GfxCanvas(DVItext1& gfx);
+    GfxCanvas();
+    ~GfxCanvas();
 
-    uint16_t getHeight();
-    uint16_t getWidth();
-    uint16_t getX();
-    uint16_t getY();
-    void setX(uint16_t newX);
-    void setY(uint16_t newY);
-    void incrementX();
-    void incrementY();
+    bool begin();
+    void end();
+    void swap(bool copy_framebuffer);
 
-    virtual void drawPixel(int16_t x, int16_t y, uint16_t color);
-    virtual void fillScreen(uint16_t color);
-    virtual void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
-    virtual void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
-    [[nodiscard]] virtual bool getPixel(int16_t x, int16_t y) const;
+    // Canvas
+    uint16_t getHeight() override;
+    uint16_t getWidth() override;
 
-    void verticalScroll(int16_t y);
+    void drawCharacter(int16_t x, int16_t y, char c) override;
+    void fill(uint16_t color) override;
+
+    void clear();
+    // End Canvas
 
   private:
-    DVItext1& gfx;
+    mutable pimoroni::DVHSTX hstx;
+
     unsigned int x = 0;
     unsigned int y = 0;
 };

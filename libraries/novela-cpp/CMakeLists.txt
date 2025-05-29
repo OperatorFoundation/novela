@@ -12,13 +12,7 @@ set(VTERM_LIB_SOURCE_DIR ${VTERM_LIB_DIR}/src)
 
 include_directories(${NOVELA_LIB_SOURCE_DIR}, ${VTERM_LIB_SOURCE_DIR})
 file(GLOB_RECURSE NOVELA_FILES ${NOVELA_LIB_SOURCE_DIR}/*.cpp)
-add_library(novela-cpp-lib STATIC ${NOVELA_FILES}
-  src/cursor.cpp
-  src/cursor.h
-  src/bell.cpp
-  src/bell.h
-  src/logger.cpp
-  src/logger.h)
+add_library(novela-cpp-lib STATIC ${NOVELA_FILES})
 
 target_include_directories(novela-cpp-lib PUBLIC ${NOVELA_LIB_SOURCE_DIR})
 

@@ -4,81 +4,75 @@
 
 #include "gfx_canvas.h"
 
+#include <algorithm>
 #include <cstring>
+#include <colors.h>
 
-GfxCanvas::GfxCanvas(DVItext1& gfx) : gfx(gfx)
+// Initialize the internal GFXcanvas16 to 19 columns, 30 rows, and do not allocate a buffer.
+// The buffer will be shared with HSTX instead.
+GfxCanvas::GfxCanvas() : GFXcanvas16(91, 30, false) {}
+
+GfxCanvas::~GfxCanvas()
 {
-  gfx.begin();
-  gfx.fillScreen(0);
-  gfx.setCursor(0, 0);
+  end();
+}
+
+bool GfxCanvas::begin()
+{
+  // Initialize HSTX, which will do all the HDMI drawing work
+  bool result = hstx.init(91, 30, pimoroni::DVHSTX::MODE_TEXT_RGB111, false, DVHSTX_PINOUT_DEFAULT);
+  if(!result)
+  {
+    return false;
+  }
+
+  // Get the HSTX buffer and store it in our GFXcanvas16 private buffer instance variable
+  buffer = hstx.get_back_buffer<uint16_t>();
+
+  return true;
+}
+
+void GfxCanvas::end()
+{
+  hstx.reset();
 }
 
 uint16_t GfxCanvas::getHeight()
 {
-  return 240;
+  return _height;
 }
 
 uint16_t GfxCanvas::getWidth()
 {
-  return 640;
+  return _width;
 }
 
-uint16_t GfxCanvas::getX()
+
+void GfxCanvas::drawCharacter(int16_t x, int16_t y, char c)
 {
-  return x;
+  GFXcanvas16::drawPixel(x, y, (TextColor::TEXT_WHITE << 8) | static_cast<int16_t>(c));
 }
 
-uint16_t GfxCanvas::getY()
+void GfxCanvas::fill(uint16_t color)
 {
-  return y;
+  GFXcanvas16::fillScreen(color);
 }
 
-void GfxCanvas::setX(uint16_t newX)
+void GfxCanvas::swap(bool copy_framebuffer)
 {
-  x = newX;
+  return;
+
+  // hstx.flip_blocking();
+  //
+  // if(copy_framebuffer)
+  // {
+  //   memcpy(hstx.get_front_buffer<uint8_t>(), hstx.get_back_buffer<uint8_t>(), sizeof(uint16_t) * _width * _height);
+  // }
+  //
+  // buffer = hstx.get_back_buffer<uint16_t>();
 }
 
-void GfxCanvas::setY(uint16_t newY)
+void GfxCanvas::clear()
 {
-  y = newY;
-}
-
-void GfxCanvas::incrementX()
-{
-  x++;
-}
-
-void GfxCanvas::incrementY()
-{
-  y++;
-}
-
-void GfxCanvas::drawPixel(int16_t x, int16_t y, uint16_t color)
-{
-  gfx.drawPixel(x, y, color);
-}
-
-void GfxCanvas::fillScreen(uint16_t color)
-{
-  gfx.fillScreen(color);
-}
-
-void GfxCanvas::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
-{
-  gfx.drawFastVLine(x, y, h, color);
-}
-
-void GfxCanvas::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
-{
-  gfx.drawFastHLine(x, y, w, color);
-}
-
-[[nodiscard]] bool GfxCanvas::getPixel(int16_t x, int16_t y) const
-{
-  return gfx.getPixel(x, y);
-}
-
-void GfxCanvas::verticalScroll(int16_t y)
-{
-  std::memmove(gfx.getBuffer(), gfx.getBuffer() + getWidth(), getWidth() * (getHeight() - 1) * 2);
+  std::fill(getBuffer(), getBuffer() + getWidth() * getHeight(), 0);
 }

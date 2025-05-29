@@ -22,10 +22,10 @@ void Bell::update()
 
 void Bell::show()
 {
-  canvas.drawPixel(0, 0, '*');
+  canvas.drawCharacter(0, 0, '*');
 }
 
 void Bell::hide()
 {
-  canvas.drawPixel(0, 0, ' ');
+  canvas.drawCharacter(0, 0, ' ');
 }

@@ -9,8 +9,8 @@ set(NOVELA_ARDUINO_EXAMPLES_DIR ${NOVELA_ARDUINO_DIR}/examples)
 set(NOVELA_ARDUINO_1BIT_DIR ${NOVELA_ARDUINO_EXAMPLES_DIR}/novela-arduino-1bit)
 set(ARDUINO_DIR ~/Documents/Arduino/libraries)
 set(GFX_DIR ${ARDUINO_DIR}/Adafruit_GFX_Library)
-set(PICODVI_DIR ${ARDUINO_DIR}/PicoDVI_-_Adafruit_Fork/src)
-include_directories(${NOVELA_LIB_SOURCE_DIR} ${GFX_DIR} ${PICODVI_DIR})
+set(DVHSTX_DIR ${ARDUINO_DIR}/Adafruit_DVI_HSTX/src)
+include_directories(${NOVELA_LIB_SOURCE_DIR} ${GFX_DIR} ${DVHSTX_DIR})
 
 # Define your sketch file
 set(SKETCH_FILE ${NOVELA_ARDUINO_1BIT_DIR}/novela-arduino-1bit.ino)
@@ -21,13 +21,7 @@ set(PORT "/dev/cu.usbmodem1101")
 set(OUTPUT_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/arduino/rp2350/novela-arduino)
 file(GLOB_RECURSE NOVELA_FILES ${NOVELA_LIB_SOURCE_DIR}/*.cpp ${NOVELA_ARDUINO_SOURCE_DIR}/*.cpp ${NOVELA_ARDUINO_SOURCE_DIR}/*.ino)
 
-add_executable(novela-arduino ${NOVELA_FILES}
-  src/gfx_canvas.cpp
-  src/gfx_canvas.h
-  src/arduino_clock.cpp
-  src/arduino_clock.h
-  src/serial_logger.cpp
-  src/serial_logger.h)
+add_executable(novela-arduino ${NOVELA_FILES})
 add_dependencies(novela-arduino build_novela_arduino)
 target_link_libraries(novela-arduino PRIVATE novela-cpp)
 

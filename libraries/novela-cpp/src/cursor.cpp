@@ -154,14 +154,14 @@ void Cursor::update()
 
 void Cursor::show()
 {
-  canvas.drawPixel(canvas.getX(), canvas.getY(), '#'); // FIXME - how do other terminals handle the cursor?
+  canvas.drawCharacter(static_cast<int16_t>(col), static_cast<int16_t>(row), '#'); // FIXME - how do other terminals handle the cursor?
 }
 
 void Cursor::hide()
 {
   VTermPos pos;
-  pos.row = canvas.getY() - 1;
-  pos.col = canvas.getX() - 1;
+  pos.col = col - 1;
+  pos.row = row - 1;
 
   VTermScreenCell cell;
 
@@ -169,11 +169,11 @@ void Cursor::hide()
   {
     if(cell.chars[0] == 0)
     {
-      canvas.drawPixel(canvas.getX(), canvas.getY(), ' ');
+      canvas.drawCharacter(static_cast<int16_t>(col), static_cast<int16_t>(row), ' ');
     }
     else
     {
-      canvas.drawPixel(canvas.getX(), canvas.getY(), cell.chars[0]); // FIXME - how do other terminals handle the cursor?
+      canvas.drawCharacter(static_cast<int16_t>(col), static_cast<int16_t>(row), cell.chars[0]); // FIXME - how do other terminals handle the cursor?
     }
   }
 }

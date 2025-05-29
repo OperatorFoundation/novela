@@ -1,347 +1,272 @@
 //
-// Created by Dr. Brandon Wiley on 5/13/25.
+// Created by Dr. Brandon Wiley on 5/26/25.
 //
 
 #include "novela.h"
 
-void Novela::process(uint8_t c)
-{
-  switch(mode)
-  {
-    case display:
-      process_display(c);
-      break;
+#include "colors.h"
 
-    case esc:
-      if(c == '[')
+#define CHAR_WIDTH 8
+#define CHAR_HEIGHT 8
+
+Novela* Novela::instance = nullptr;
+
+Novela::Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger) : canvas(canvas), connection(connection), clock(clock), logger(logger)
+{
+  instance = this;
+}
+
+// The begin function allows for nothing much to happen until Arduino setup() is concluded.
+// Therefore, this should be called at the end of setup().
+void Novela::begin()
+{
+  int hpx = canvas.getHeight() - 1;
+  int wpx = canvas.getWidth() - 1;
+  int hc = hpx / CHAR_HEIGHT;
+  int wc = wpx / CHAR_WIDTH;
+  int rows = hc - 2;
+  int cols = wc - 2;
+
+  vt = vterm_new(rows, cols);
+  if (!vt)
+  {
+    // FIXME - report error
+    return;
+  }
+
+  // Set output callback
+  vterm_output_set_callback(vt, on_output, NULL);
+
+  // Get screen interface
+  screen = vterm_obtain_screen(vt);
+
+  cursor.emplace(Cursor(canvas, clock, screen));
+  bell.emplace(Bell(canvas, clock));
+
+  // Enable features
+  // FIXME - implement altscreen support
+  // vterm_screen_enable_altscreen(screen, 1);
+
+  // Set callbacks
+  screen_callbacks = {
+    .damage = redraw,
+    .moverect = NULL,
+    .movecursor = move_cursor,
+    .settermprop = set_prop,
+    .bell = bell_rung,
+    .resize = NULL,
+    .sb_pushline = NULL,
+    .sb_popline = NULL
+  };
+  vterm_screen_set_callbacks(screen, &screen_callbacks, NULL);
+
+  // Initialize screen
+  vterm_screen_reset(screen, 1);
+}
+
+void Novela::process(uint8_t b)
+{
+  logger.debug("NovelaVterm::process");
+
+  const char c = static_cast<char>(b);
+  vterm_input_write(instance->vt, &c, 1);
+}
+
+void Novela::setTitle(std::string newTitle)
+{
+  logger.debug("NovelaVterm::setTitle");
+  logger.debug(newTitle.c_str());
+
+  if(!title.empty())
+  {
+    logger.debug("empty");
+    for(int i = 0; i < title.size(); i++)
+    {
+      canvas.drawCharacter(0, i + 1, ' ');
+    }
+  }
+
+  logger.debug(".");
+
+  title = newTitle;
+
+  for(int i = 0; i < title.size(); i++)
+  {
+    canvas.drawCharacter(0, i + 1, title.at(i));
+  }
+}
+
+void Novela::update()
+{
+  if(bell)
+  {
+    bell->update();
+  }
+
+  if(cursor)
+  {
+    cursor->update();
+  }
+}
+
+// vterm event callbacks
+
+// Update an area of the screen
+int redraw(VTermRect rect, void *user)
+{
+  if(Novela::instance == nullptr)
+  {
+    return -1;
+  }
+
+  Novela::instance->logger.debug("redraw");
+
+  // A rectangle from (start_row,start_col) to (end_row,end_col) changed
+  for (int row = rect.start_row; row < rect.end_row; row++)
+  {
+    for (int col = rect.start_col; col < rect.end_col; col++)
+    {
+      VTermPos pos = {.row = row, .col = col};
+      VTermScreenCell cell;
+
+      // Get what should be at this position
+      if (vterm_screen_get_cell(Novela::instance->screen, pos, &cell) == 0)
       {
-        mode = command;
+        continue;
+      }
+
+      // Move cursor to position
+      if(Novela::instance->cursor)
+      {
+        Novela::instance->cursor->setPosition(col + 1, row + 1);
+      }
+
+      // Set colors/attributes
+      //if (cell.attrs.bold) Serial.print("\033[1m");
+      //if (cell.attrs.underline) Serial.print("\033[4m");
+      //if (cell.attrs.reverse) Serial.print("\033[7m");
+
+      // Print the character
+      if(cell.chars[0] == 0)
+      {
+        //Serial.print(' ');
+        Novela::instance->canvas.drawCharacter(col + 1, row + 1, ' ');
       }
       else
       {
-        mode = display;
-        process_display(c);
+        //Serial.print('?'); // FIXME
+        Novela::instance->canvas.drawCharacter(col + 1, row + 1, cell.chars[0]);
       }
-      break;
-
-    case command:
-      process_command(c);
-      break;
-
-    default:
-      mode = display;
-      return;
+    }
   }
+
+  return 1;
 }
 
-void Novela::process_display(uint8_t c)
+// Move the cursor
+int move_cursor(VTermPos pos, VTermPos oldpos, int visible, void *user)
 {
-  if(c < 32) // 0-32
+  if(Novela::instance == nullptr)
   {
-    process_control(c);
+    return -1;
   }
-  else if(c == 32) // space
+
+  Novela::instance->logger.debug("move_cursor");
+
+  if(Novela::instance->cursor)
   {
-    process_space();
+    Novela::instance->cursor->setPosition(pos.col + 1, pos.row + 1);
   }
-  else if(c < 127) // 33-126
+
+  return 1;
+}
+
+// Ring the bell
+int bell_rung(void *user)
+{
+  if(Novela::instance == nullptr)
   {
-    process_printable(c);
+    return -1;
   }
-  else if(c == 127) // delete
+
+  Novela::instance->logger.debug("bell_rung");
+
+  if(Novela::instance->bell)
   {
-    // Delete is ignored by modern terminal emulators
+    Novela::instance->bell->ring();
+    return 1;
   }
   else
   {
-    process_high(c); // 127-255
+    return -2;
   }
 }
 
-void Novela::process_control(uint8_t c)
+// Set a terminal property
+int set_prop(VTermProp prop, VTermValue *val, void *user)
 {
-  switch(c)
+  if(Novela::instance == nullptr)
   {
-    case 0: // NULL
-    case 1: // Start of heading
-    case 2: // Start of text
-    case 3: // End of text
-    case 4: // End of transmission
-    case 5: // Enquiry
-    case 6: // Acknowledge
-    case 7: // bell - FIXME
-      return;
-    case 8: // backspace
-      process_backspace();
-      break;
-    case 9: // horizontal tab
-      canvas.setX((canvas.getX() + 8) & (~7));
-      checkWrap();
-      checkScroll();
-      break;
-    case 10: // \n, newline
-      canvas.setY(canvas.getY() + 1);
-      checkScroll();
-      break;
-    case 11: // vertical tab
-      // Move the cursor down one line.
-      // Maintain the same column position.
-      canvas.setY(canvas.getY() + 1);
-      checkScroll();
-      break;
-    case 12: // form feed
-      canvas.setX(0);
-      canvas.setY(0);
-      checkScroll();
-      break;
-    case 13: // \r, carriage return
-      canvas.setX(0);
-      break;
-    case 14: // shift out
-    case 15: // shift in
-      return; // FIXME
-    case 16: // data link escape
-    case 17: // XON
-    case 18: // Device Control Two
-    case 19: // XOFF
-    case 20: // Device Control 4
-    case 21: // NAK
-    case 22: // Synchronous Idle
-    case 23: // End of transmission block
-    case 24: // Cancel
-    case 25: // End of medium
-    case 26: // Substitute
-      return;
-    case 27: // Escape
-      process_escape();
-      break;
-    case 28: // File separator
-    case 29: // Group separator
-    case 30: // Record separator
-    case 31: // Unit separator
-      return;
-
-    default:
-      return;
-  }
-}
-
-void Novela::process_space()
-{
-  canvas.drawPixel(canvas.getX(), canvas.getY(), ' ');
-  canvas.incrementX();
-
-  checkWrap();
-}
-
-void Novela::process_printable(uint8_t c)
-{
-  canvas.drawPixel(canvas.getX(), canvas.getY(), c);
-  canvas.incrementX();
-
-  if(checkWrap())
-  {
-    canvas.setX(0);
-    canvas.incrementY();
+    return -1;
   }
 
-  if(checkScroll())
+  Novela::instance->logger.debug("set_prop");
+
+  switch(prop)
   {
-    scroll();
-  }
-}
-
-void Novela::process_backspace()
-{
-  // Move the cursor one position to the left.
-  // If the cursor is at the left edge, do nothing.
-  // Do not erase any character, only reposition the cursor.
-  if(canvas.getX() > 0)
-  {
-    canvas.setX(canvas.getX() - 1);
-  }
-}
-
-void Novela::process_high(uint8_t c)
-{
-  // FIXME
-}
-
-void Novela::process_escape()
-{
-  mode = esc;
-}
-
-void Novela::process_command(uint8_t c)
-{
-  switch(c)
-  {
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
+    case VTERM_PROP_CURSORVISIBLE:
     {
-      process_parameter_digit(c);
-      break;
-    }
-    case ';':
-    {
-      parameters.emplace_back(std::nullopt);
-      break;
-    }
-    case 'H': // home
-    {
-      unsigned int x = 0;
-      unsigned int y = 0;
-
-      if(!parameters.empty())
+      if(Novela::instance->cursor)
       {
-        if(parameters.size() == 2)
-        {
-          if(const std::optional<unsigned int> yp = parameters[0])
-          {
-            y = *yp;
-          }
+        Novela::instance->cursor->setVisible(val->boolean);
+      }
+      break;
+    }
 
-          if(const std::optional<unsigned int> xp = parameters[1])
-          {
-            x = *xp;
-          }
-        }
+    case VTERM_PROP_CURSORBLINK:
+      if(Novela::instance->cursor)
+      {
+        Novela::instance->cursor->setBlinking(val->boolean);
       }
 
-      canvas.setX(x);
-      canvas.setY(y);
+    case VTERM_PROP_TITLE:
+    {
+      std::string s(val->string.str, val->string.len);
+      Novela::instance->setTitle(s);
       break;
     }
-  }
-}
 
-void Novela::process_modeset(uint8_t c)
-{
-  switch(c)
-  {
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-      process_parameter_digit(c);
-      break;
-    case 'h':
-    case 'l':
-      for(auto parameter : parameters)
-      {
-        if(parameter)
-        {
-          if(c == 'h')
-          {
-            setMode(*parameter, 1);
-          }
-          else
-          {
-            setMode(*parameter, 0);
-          }
-        }
-      }
+    case VTERM_PROP_ICONNAME:
+      break; // Ignoring the icon name is standard on modern implementations
 
-      mode = display;
-      break;
+    case VTERM_PROP_ALTSCREEN:
+      break; // FIXME
+
+    case VTERM_PROP_REVERSE:
+      break; // FIXME
+
+    case VTERM_PROP_MOUSE:
+      break; // FIXME
 
     default:
-      mode = display;
-      return;
+      return -2;
   }
+
+  return 1;
 }
 
-void setMode(unsigned int parameter, int onOff)
+// The terminal has some requested information to send back to the host.
+void on_output(const char *cs, size_t len, void *user)
 {
-  switch(parameter)
+  if(Novela::instance == nullptr)
   {
-    case 1: // Application Cursor Keys
-    case 3: // 80/132 Column Mode (DECCOLM)
-    case 5: // Reverse Video (DECSCNM)
-    case 6: // Origin Mode (DECOM)
-    case 7: // Auto-wrap Mode (DECAWM)
-    case 8: // Auto-repeat Keys (DECARM)
-    case 9: // Mouse tracking
-    case 12: // Send/receive cursor position reports
-    case 18: // Print form feed mode (DECPFF)
-    case 19: // Print form feed (DECPFF)
-    case 25: // Show/hide cursor
-    case 42: // National Replacement Character Sets (DECNRCM)
-    case 45: // Reverse-wraparound Mode
-    case 47: // Use alternate screen buffer
-    case 66: // Application keypad mode (DECNKM)
-    case 69: // Left and right margin mode (DECLRMM)
-    case 95: // Clear screen on DECCOLM changes
-    case 1000: // Send mouse X/Y position on button press and release
-    case 1002: // Use hilite mouse tracking
-    case 1003: // Use all motion mouse tracking
-    case 1004: // Send focus in/out events
-    case 1005: // Enable UTF//8 mouse mode
-    case 1006: // Enable SGR mouse mode
-    case 1015: // Enable urxvt mouse mode
-    case 1047: // Use alternate screen buffer
-    case 1048: // Save/restore cursor position
-    case 1049: // Combined 1047 + 1048 mode
-    case 2004: // Bracketed paste mode
-      break;
-
-    default:
-      return;
+    return;
   }
+
+  Novela::instance->logger.debug("on_output");
+
+  std::string s(cs, len);
+  Novela::instance->connection.write(s);
 }
 
-void Novela::process_parameter_digit(uint8_t c)
-{
-  const int parameter = c - '0';
-  if(parameters.empty())
-  {
-    parameters.push_back(parameter);
-  }
-  else
-  {
-    const std::optional<unsigned int> oldParameter = parameters.back();
-    parameters.pop_back();
-
-    if(oldParameter)
-    {
-      const unsigned int newParameter = (*oldParameter) * 10 + parameter;
-      parameters.emplace_back(newParameter);
-    }
-    else
-    {
-      parameters.emplace_back(parameter);
-    }
-  }
-}
-
-
-bool Novela::checkWrap()
-{
-  return canvas.getX() >= canvas.getWidth();
-}
-
-bool Novela::checkScroll()
-{
-  return canvas.getY() >= (canvas.getHeight() - 1);
-}
-
-void Novela::scroll()
-{
-  canvas.verticalScroll(1);
-  canvas.drawFastHLine(0, canvas.getHeight() - 1, canvas.getWidth(), ' '); // Clear bottom line
-  canvas.setY(canvas.getHeight() - 1);
-}
+// End vterm event callbacks

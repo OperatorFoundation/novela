@@ -2,17 +2,17 @@
 #include <string>
 
 #include <gfx_canvas.h>
-#include <novela_vterm.h>
+#include <novela.h>
 #include <ReliableConnection.h>
 #include <arduino_clock.h>
 #include <serial_logger.h>
 
-DVItext1 gfx = DVItext1(DVI_RES_640x240p60, adafruit_dvibell_cfg);
-GfxCanvas canvas = GfxCanvas(gfx);
+//GFXcanvas16 gfx(DVHSTX_PINOUT_DEFAULT);
+GfxCanvas canvas = GfxCanvas();
 ReliableConnection connection = ReliableConnection();
 ArduinoClock ticker = ArduinoClock();
 SerialLogger logger = SerialLogger();
-NovelaVterm novela(canvas, connection, ticker, logger);
+Novela novela(canvas, connection, ticker, logger);
 
 void setup()
 {
@@ -27,6 +27,8 @@ void setup()
   Serial2.setTX(4);
   Serial2.setRX(5);
   Serial2.begin(115200);
+
+  canvas.begin();
 
   // Call this last to ensure that everything is initialized before we start up the terminal.
   novela.begin();
