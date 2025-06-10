@@ -8,12 +8,12 @@
 
 void Connection::write(std::string s)
 {
-  std::vector<uint8_t> bs(s.begin(), s.end());
+  std::vector<char> bs(s.begin(), s.end());
   write(bs);
 }
 
-void Connection::write(char *cs)
+void Connection::write(bytes bs)
 {
-  std::vector<uint8_t> bs(cs, cs + strlen(cs));
+  std::vector<char> cs(bs.begin(), bs.end());
   write(bs);
 }

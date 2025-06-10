@@ -3,16 +3,26 @@
 
 #include <gfx_canvas.h>
 #include <novela.h>
-#include <ReliableConnection.h>
+#include <ReliableConnectionUsbCdc.h>
+#include <ReliableConnectionSerial1.h>
 #include <arduino_clock.h>
 #include <serial_logger.h>
+#include <soft_cursor.h>
+#include <drivers/dvhstx/dvhstx.hpp>
 
-//GFXcanvas16 gfx(DVHSTX_PINOUT_DEFAULT);
-GfxCanvas canvas = GfxCanvas();
-ReliableConnection connection = ReliableConnection();
+const std::vector<char> XON  = {0x11};
+const std::vector<char> XOFF = {0x13};
+
+pimoroni::DVHSTX hstx;
+GfxCanvas canvas = GfxCanvas(hstx);
+ReliableConnectionUsbCdc usb = ReliableConnectionUsbCdc();
+ReliableConnectionSerial1 serial1 = ReliableConnectionSerial1();
 ArduinoClock ticker = ArduinoClock();
 SerialLogger logger = SerialLogger();
-Novela novela(canvas, connection, ticker, logger);
+SoftCursor cursor = SoftCursor(ticker, canvas, logger);
+Novela novela(canvas, serial1, ticker, logger, &cursor);
+
+std::vector<char> outputBuffer = std::vector<char>();
 
 void setup()
 {
@@ -21,35 +31,58 @@ void setup()
     delay(1);
   }
 
-  Serial.begin(9600);
+  Serial.begin(921600);
   Serial.println("Hello, Operator.");
 
-  Serial2.setTX(4);
-  Serial2.setRX(5);
-  Serial2.begin(115200);
+  Serial1.setTX(0);
+  Serial1.setRX(1);
+  Serial1.begin(115200);
+
+  Serial.println("UART begin");
+  Serial.write("\033[2J\033[H"); // Clear screen and send cursor to home
+
+  logger.setLevel(Logger::Level::INFO);
 
   canvas.begin();
 
   // Call this last to ensure that everything is initialized before we start up the terminal.
   novela.begin();
+
+  serial1.write(XON);
 }
 
 void loop()
 {
-  //Serial.print('.');
-  int c = Serial.read();
-  if(c != -1)
-  {
-    Serial.println(c);
-    novela.process(static_cast<byte>(static_cast<unsigned char>(c)));
-  }
+  std::vector<char> output = serial1.read();
 
-  c = connection.tryReadOne();
-  if(c != -1)
+  if(output.empty()) // In idle moments, do everything else besides buffering output
   {
-    Serial.println(c);
-    novela.process(static_cast<byte>(static_cast<unsigned char>(c)));
-  }
+    if(!outputBuffer.empty()) // Empty the output buffer
+    {
+      novela.process(outputBuffer);
+      //usb.write(buffer);
 
-  novela.update();
+      outputBuffer.clear();
+      serial1.write(XON);
+    }
+
+    novela.update();
+
+    std::vector<char> input = usb.read();
+    if(!input.empty())
+    {
+      serial1.write(input);
+    }
+  }
+  else // Prioritize getting output so we don't overrun the buffer
+  {
+    // If we have new data, but we've already buffered some, tell the other side to stop sending
+	if(!outputBuffer.empty())
+	{
+      serial1.write(XOFF);
+	}
+
+    // Transfer the new data into the buffer for later processing
+    outputBuffer.insert(outputBuffer.end(), output.begin(), output.end());
+  }
 }

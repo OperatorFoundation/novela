@@ -10,7 +10,7 @@
 
 // Initialize the internal GFXcanvas16 to 19 columns, 30 rows, and do not allocate a buffer.
 // The buffer will be shared with HSTX instead.
-GfxCanvas::GfxCanvas() : GFXcanvas16(91, 30, false) {}
+GfxCanvas::GfxCanvas(pimoroni::DVHSTX& hstx) : GFXcanvas16(91, 30, false), hstx(hstx) {}
 
 GfxCanvas::~GfxCanvas()
 {

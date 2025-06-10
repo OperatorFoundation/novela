@@ -11,9 +11,9 @@ class SerialLogger : public Logger
 {
   public:
     SerialLogger() = default;
-    ~SerialLogger() = default;
 
-    void debug(const char *cs);
+  protected:
+    void write(const char*) override;
 };
 
 #endif //SERIAL_LOGGER_H

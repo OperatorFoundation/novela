@@ -6,7 +6,7 @@
 
 #include <Arduino.h>
 
-void SerialLogger::debug(const char *cs)
+void SerialLogger::write(const char *cs)
 {
   Serial.println(cs);
 }

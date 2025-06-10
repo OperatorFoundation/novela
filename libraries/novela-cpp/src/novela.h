@@ -27,26 +27,41 @@ class Novela
     Clock& clock;
     Logger& logger;
 
-    std::optional<Cursor> cursor = std::nullopt;
+    Cursor *cursor = nullptr;
     std::optional<Bell> bell = std::nullopt;
 
     VTerm *vt;
     VTermScreen *screen;
     VTermScreenCallbacks screen_callbacks;
 
-    explicit Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger);
+    explicit Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger, Cursor *cursor);
 
     void begin();
-    void process(uint8_t c);
+    void process(std::vector<char> bs);
+    void processCharacter(char c);
 
     void setTitle(std::string newTitle);
     void update();
 
   private:
+    enum class Mode
+    {
+      NORMAL = 0,
+      ESC = 1,
+      CSI = 2,
+      OSC = 3,
+      SPACE = 4,
+      CHARSET = 5,
+      DEC_SPECIAL = 6,
+      ENCODING = 7
+    };
+
+    Mode mode = Mode::NORMAL;
+    std::vector<char> buffer;
+
     std::string title;;
 };
 
-int output_callback(const char *bytes, size_t len, void *user);
 int redraw(VTermRect rect, void *user);
 int move_cursor(VTermPos pos, VTermPos oldpos, int visible, void *user);
 int bell_rung(void *user);

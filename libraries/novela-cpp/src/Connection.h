@@ -15,12 +15,12 @@ class EXPORT Connection
         virtual ~Connection() = default;
 
         void write(std::string s);
-        void write(char *cs);
+        void write(bytes bs);
 
         [[nodiscard]] virtual int tryReadOne() const = 0;
         [[nodiscard]] virtual char readOne() const = 0;
         [[nodiscard]] virtual bytes read(int size) const = 0;
-        virtual void write(bytes bs) const = 0;
+        virtual void write(std::vector<char> bs) const = 0;
 };
 
 #endif

@@ -19,20 +19,20 @@ class Cursor
     static constexpr int bar_steady = 5;
     static constexpr int bar_blinking = 6;
 
-    int blink_duration = 200;
+    int blink_duration = 500;
 
-    explicit Cursor(Canvas& canvas, Clock& clock, VTermScreen* screen) : canvas(canvas), clock(clock), screen(screen) {};
+    Cursor(Clock& clock);
 
+    void setScreen(VTermScreen *screen);
     void setPosition(int col, int row);
     void setVisible(bool visible);
     void setBlinking(bool blinking);
     void setShape(int shape);
     void update();
 
-  private:
-    Canvas& canvas;
+  protected:
     Clock& clock;
-    VTermScreen *screen;
+    VTermScreen *screen = nullptr;
 
     int col = 0;
     int row = 0;
@@ -42,8 +42,9 @@ class Cursor
     bool set_blinking = false; // This is whether the terminal wants the cursor to be blinking or not.
     bool blinking_visible = false; // This is whether the cursor is currently being drawn on screen in the cursor blink cycle, NOT whether it is visible according to terminal settings.
 
-    void show();
-    void hide();
+    virtual void show() = 0;
+    virtual void hide() = 0;
+    virtual void move() = 0;
 };
 
 #endif //CURSOR_H

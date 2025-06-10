@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.31)
 project(novela-arduino)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
+set(CMAKE_C_FLAGS_DEBUG "-g -O0")
 set(NOVELA_LIB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/libraries/novela-cpp/src)
 set(NOVELA_ARDUINO_DIR ${CMAKE_SOURCE_DIR}/libraries/novela-arduino)
 set(NOVELA_ARDUINO_SOURCE_DIR ${NOVELA_ARDUINO_DIR}/src)
@@ -21,7 +24,11 @@ set(PORT "/dev/cu.usbmodem1101")
 set(OUTPUT_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/arduino/rp2350/novela-arduino)
 file(GLOB_RECURSE NOVELA_FILES ${NOVELA_LIB_SOURCE_DIR}/*.cpp ${NOVELA_ARDUINO_SOURCE_DIR}/*.cpp ${NOVELA_ARDUINO_SOURCE_DIR}/*.ino)
 
-add_executable(novela-arduino ${NOVELA_FILES})
+add_executable(novela-arduino ${NOVELA_FILES}
+  src/soft_cursor.cpp
+  src/soft_cursor.h
+  src/ReliableConnectionUsbCdc.cpp
+  src/ReliableConnectionUsbCdc.h)
 add_dependencies(novela-arduino build_novela_arduino)
 target_link_libraries(novela-arduino PRIVATE novela-cpp)
 
@@ -30,6 +37,7 @@ add_custom_target(build_novela_arduino ALL
             --fqbn ${BOARD}
             --output-dir ${OUTPUT_DIR}
             --build-property "compiler.cpp.extra_flags=-std=c++17 -D_BSD_SOURCE -D_DEFAULT_SOURCE"
+            --build-property "compiler.cpp.extra_flags=${CMAKE_CXX__FLAGS_DEBUG}"
             --libraries ${CMAKE_SOURCE_DIR}/libraries
             ${SKETCH_FILE}
         WORKING_DIRECTORY ${NOVELA_ARDUINO_SOURCE_DIR}

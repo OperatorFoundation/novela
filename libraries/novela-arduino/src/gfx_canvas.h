@@ -5,8 +5,10 @@
 #ifndef GFX_CANVAS_H
 #define GFX_CANVAS_H
 
-#include <Adafruit_dvhstx.h>
 #include <canvas.h>
+
+#include <Adafruit_dvhstx.h>
+#include <drivers/dvhstx/dvhstx.hpp>
 
 #include <cstdint>
 
@@ -16,7 +18,7 @@
 class GfxCanvas : public Canvas, public GFXcanvas16
 {
   public:
-    GfxCanvas();
+    GfxCanvas(pimoroni::DVHSTX& hstx);
     ~GfxCanvas();
 
     bool begin();

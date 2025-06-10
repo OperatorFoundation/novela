@@ -6,6 +6,14 @@
 
 #include <vterm.h>
 
+Cursor::Cursor(Clock& clock) : clock(clock) {}
+
+void Cursor::setScreen(VTermScreen* newScreen)
+{
+  screen = newScreen;
+}
+
+
 void Cursor::setVisible(bool visible)
 {
   // Cursor is already on the screen
@@ -151,30 +159,3 @@ void Cursor::update()
     }
   }
 }
-
-void Cursor::show()
-{
-  canvas.drawCharacter(static_cast<int16_t>(col), static_cast<int16_t>(row), '#'); // FIXME - how do other terminals handle the cursor?
-}
-
-void Cursor::hide()
-{
-  VTermPos pos;
-  pos.col = col - 1;
-  pos.row = row - 1;
-
-  VTermScreenCell cell;
-
-  if(vterm_screen_get_cell(screen, pos, &cell))
-  {
-    if(cell.chars[0] == 0)
-    {
-      canvas.drawCharacter(static_cast<int16_t>(col), static_cast<int16_t>(row), ' ');
-    }
-    else
-    {
-      canvas.drawCharacter(static_cast<int16_t>(col), static_cast<int16_t>(row), cell.chars[0]); // FIXME - how do other terminals handle the cursor?
-    }
-  }
-}
-

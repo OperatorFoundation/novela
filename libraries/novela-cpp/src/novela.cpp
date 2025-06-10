@@ -11,7 +11,7 @@
 
 Novela* Novela::instance = nullptr;
 
-Novela::Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger) : canvas(canvas), connection(connection), clock(clock), logger(logger)
+Novela::Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger, Cursor *cursor) : canvas(canvas), connection(connection), clock(clock), logger(logger), cursor(cursor)
 {
   instance = this;
 }
@@ -20,32 +20,33 @@ Novela::Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& log
 // Therefore, this should be called at the end of setup().
 void Novela::begin()
 {
-  int hpx = canvas.getHeight() - 1;
-  int wpx = canvas.getWidth() - 1;
-  int hc = hpx / CHAR_HEIGHT;
-  int wc = wpx / CHAR_WIDTH;
-  int rows = hc - 2;
-  int cols = wc - 2;
+  int cols = canvas.getHeight() - 3;
+  int rows = canvas.getWidth() - 3;
 
-  vt = vterm_new(rows, cols);
+  logger.infof("vterm_new(%d, %d)", cols, rows);
+
+  vt = vterm_new(cols, rows);
   if (!vt)
   {
-    // FIXME - report error
+    logger.debugf("fatal error, vterm_new failed");
     return;
   }
 
   // Set output callback
-  vterm_output_set_callback(vt, on_output, NULL);
+  vterm_output_set_callback(vt, on_output, nullptr);
 
   // Get screen interface
   screen = vterm_obtain_screen(vt);
+  cursor->setScreen(screen);
 
-  cursor.emplace(Cursor(canvas, clock, screen));
   bell.emplace(Bell(canvas, clock));
 
   // Enable features
   // FIXME - implement altscreen support
   // vterm_screen_enable_altscreen(screen, 1);
+
+  VTermState *state = vterm_obtain_state(vt);
+  vterm_state_set_unrecognised_fallbacks(state, nullptr, nullptr);
 
   // Set callbacks
   screen_callbacks = {
@@ -64,29 +65,182 @@ void Novela::begin()
   vterm_screen_reset(screen, 1);
 }
 
-void Novela::process(uint8_t b)
+void Novela::process(std::vector<char> bs)
 {
   logger.debug("NovelaVterm::process");
 
-  const char c = static_cast<char>(b);
-  vterm_input_write(instance->vt, &c, 1);
+  vterm_input_write(instance->vt, bs.data(), bs.size());
+
+  // for(auto c : bs)
+  // {
+  //   processCharacter(c);
+  // }
+}
+
+void Novela::processCharacter(char c)
+{
+  switch(mode)
+  {
+    case Mode::NORMAL:
+      if(c == 0x1B) // ESC
+      {
+        buffer.push_back(c);
+        mode = Mode::ESC;
+      }
+      else
+      {
+        vterm_input_write(instance->vt, &c, 1);
+      }
+
+      break;
+
+    case Mode::ESC:
+      buffer.push_back(c);
+
+      switch(c)
+      {
+        case 0x1B:  // ESC ESC
+          mode = Mode::NORMAL;
+          vterm_input_write(instance->vt, buffer.data(), buffer.size());
+          buffer.clear();
+          break;
+
+        case '[':
+          mode = Mode::CSI;
+          break;
+
+        case ']':
+          mode = Mode::OSC;
+          break;
+
+        case ' ':
+          mode = Mode::SPACE;
+          break;
+
+        // Two-character sequences
+        case 'D':
+        case 'E':
+        case 'H':
+        case 'M':
+        case 'N':
+        case 'c':
+        case 'l':
+        case 'm':
+        case 'n':
+        case 'r':
+        case 't':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+        case '0':
+        case '=':
+        case '>':
+        case '<':
+          mode = Mode::NORMAL;
+          vterm_input_write(instance->vt, buffer.data(), buffer.size());
+          buffer.clear();
+          break;
+
+        case '(':
+        case ')':
+        case '*':
+        case '+':
+          mode = Mode::CHARSET;  // Need a new mode
+          break;
+
+        case '#':
+          mode = Mode::DEC_SPECIAL;  // Need a new mode
+          break;
+
+        case '%':
+          mode = Mode::ENCODING;  // Need a new mode
+          break;
+
+        default:
+          // Unknown or invalid escape sequence
+          logger.infof("Unknown escape sequence:");
+          for(char b : buffer)
+          {
+            logger.infof("%02X", b);
+          }
+          logger.infof(".");
+
+          mode = Mode::NORMAL;
+          vterm_input_write(instance->vt, buffer.data(), buffer.size());
+          buffer.clear();
+          break;
+      }
+
+      break;
+
+    case Mode::CSI:
+      buffer.push_back(c);
+
+      if(c >= 0x40 && c <= 0x7E) // The range of CSI sequence terminators.
+      {
+        mode = Mode::NORMAL;
+        vterm_input_write(instance->vt, buffer.data(), buffer.size());
+        buffer.clear();
+      }
+      break;
+
+    case Mode::OSC:
+      buffer.push_back(c);
+
+      if((c == 0x07)) // BEL
+      {
+        mode = Mode::NORMAL;
+        vterm_input_write(instance->vt, buffer.data(), buffer.size());
+        buffer.clear();
+      }
+      else if(buffer.size() > 2 && buffer[buffer.size()-2] == 0x1B &&
+         buffer[buffer.size()-1] == '\\')
+      {
+        mode = Mode::NORMAL;
+        vterm_input_write(instance->vt, buffer.data(), buffer.size());
+        buffer.clear();
+      }
+      break;
+
+    case Mode::SPACE:
+      mode = Mode::NORMAL;
+      buffer.push_back(c);
+      vterm_input_write(instance->vt, buffer.data(), buffer.size());
+      buffer.clear();
+
+    case Mode::CHARSET:
+    case Mode::DEC_SPECIAL:
+    case Mode::ENCODING:
+      buffer.push_back(c);
+      mode = Mode::NORMAL;
+      vterm_input_write(instance->vt, buffer.data(), buffer.size());
+      buffer.clear();
+      break;
+  }
 }
 
 void Novela::setTitle(std::string newTitle)
 {
-  logger.debug("NovelaVterm::setTitle");
-  logger.debug(newTitle.c_str());
-
-  if(!title.empty())
+  if(title.empty())
   {
-    logger.debug("empty");
+    logger.debug("NovelaVterm::setTitle: (empty)");
+  }
+  else
+  {
+    logger.debugf("NovelaVterm::setTitle: %s", newTitle.c_str());
+
+    // Erase old title, in the case the new title is shorter and doesn't completely overwrite the old title
     for(int i = 0; i < title.size(); i++)
     {
       canvas.drawCharacter(0, i + 1, ' ');
     }
   }
-
-  logger.debug(".");
 
   title = newTitle;
 
@@ -119,7 +273,7 @@ int redraw(VTermRect rect, void *user)
     return -1;
   }
 
-  Novela::instance->logger.debug("redraw");
+  Novela::instance->logger.debugf("redraw %d:%d %d:%d", rect.start_col, rect.end_col, rect.start_row, rect.end_row);
 
   // A rectangle from (start_row,start_col) to (end_row,end_col) changed
   for (int row = rect.start_row; row < rect.end_row; row++)
@@ -135,12 +289,6 @@ int redraw(VTermRect rect, void *user)
         continue;
       }
 
-      // Move cursor to position
-      if(Novela::instance->cursor)
-      {
-        Novela::instance->cursor->setPosition(col + 1, row + 1);
-      }
-
       // Set colors/attributes
       //if (cell.attrs.bold) Serial.print("\033[1m");
       //if (cell.attrs.underline) Serial.print("\033[4m");
@@ -149,12 +297,12 @@ int redraw(VTermRect rect, void *user)
       // Print the character
       if(cell.chars[0] == 0)
       {
-        //Serial.print(' ');
+        Novela::instance->logger.debugf("redraw:(empty) %d,%d", col, row);
         Novela::instance->canvas.drawCharacter(col + 1, row + 1, ' ');
       }
       else
       {
-        //Serial.print('?'); // FIXME
+        Novela::instance->logger.debugf("redraw:%c %d,%d", cell.chars[0], col, row);
         Novela::instance->canvas.drawCharacter(col + 1, row + 1, cell.chars[0]);
       }
     }
@@ -171,12 +319,14 @@ int move_cursor(VTermPos pos, VTermPos oldpos, int visible, void *user)
     return -1;
   }
 
-  Novela::instance->logger.debug("move_cursor");
+  Novela::instance->logger.debug("move_cursor begin");
 
   if(Novela::instance->cursor)
   {
     Novela::instance->cursor->setPosition(pos.col + 1, pos.row + 1);
   }
+
+  Novela::instance->logger.debug("move_cursor end");
 
   return 1;
 }
@@ -263,10 +413,24 @@ void on_output(const char *cs, size_t len, void *user)
     return;
   }
 
-  Novela::instance->logger.debug("on_output");
+  Novela::instance->logger.info("on_output");
+
+  Novela::instance->logger.infof("on_output: %zu bytes: ", len);
+  for (size_t i = 0; i < len; i++) {
+    unsigned char byte = cs[i];
+    if (byte == 0x1B) {
+      Novela::instance->logger.info(" ESC");
+    } else if (byte >= 32 && byte < 127) {
+      Novela::instance->logger.infof(" '%c'", byte);
+    } else {
+      Novela::instance->logger.infof(" %02X", byte);
+    }
+  }
 
   std::string s(cs, len);
   Novela::instance->connection.write(s);
+
+  return;
 }
 
 // End vterm event callbacks
