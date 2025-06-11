@@ -17,10 +17,10 @@ class EXPORT Connection
         void write(std::string s);
         void write(bytes bs);
 
-        [[nodiscard]] virtual int tryReadOne() const = 0;
-        [[nodiscard]] virtual char readOne() const = 0;
-        [[nodiscard]] virtual bytes read(int size) const = 0;
-        virtual void write(std::vector<char> bs) const = 0;
+        [[nodiscard]] virtual int tryReadOne() = 0;
+        [[nodiscard]] virtual char readOne() = 0;
+        [[nodiscard]] virtual bytes read(int size) = 0;
+        virtual void write(std::vector<char> bs) = 0;
 };
 
 #endif

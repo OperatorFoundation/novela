@@ -23,7 +23,7 @@ class Novela
     static Novela *instance;
 
     Canvas& canvas;
-    Connection& connection;
+    Connection* connection;
     Clock& clock;
     Logger& logger;
 
@@ -34,7 +34,7 @@ class Novela
     VTermScreen *screen;
     VTermScreenCallbacks screen_callbacks;
 
-    explicit Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger, Cursor *cursor);
+    explicit Novela(Canvas& canvas, Connection* connection, Clock& clock, Logger& logger, Cursor *cursor);
 
     void begin();
     void process(std::vector<char> bs);

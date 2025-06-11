@@ -1,107 +1,157 @@
 #include "ReliableConnectionSerial1.h"
 
 #include <Arduino.h>
+#include <hardware/uart.h>
+#include <hardware/irq.h>
+#include <hardware/gpio.h>
+
+ReliableConnectionSerial1* ReliableConnectionSerial1::instance = nullptr;
+
+ReliableConnectionSerial1* ReliableConnectionSerial1::getInstance()
+{
+  if(!instance)
+  {
+    instance = new ReliableConnectionSerial1();
+  }
+
+  return instance;
+}
+
+void ReliableConnectionSerial1::uart0_handler()
+{
+  if(!instance)
+  {
+    return;
+  }
+
+  while(uart_is_readable(uart0))
+  {
+    uint8_t data = uart_getc(uart0);
+
+    if(!instance->ring.put(data))
+    {
+      instance->buffer_full = true;
+    }
+
+    if(!instance->paused && instance->ring.shouldSendXOFF())
+    {
+      uart_putc_raw(uart0, 0x13); // XOFF
+      instance->paused = true;
+    }
+  }
+}
 
 ReliableConnectionSerial1::ReliableConnectionSerial1()
 {
+  instance = this;
 }
 
-int ReliableConnectionSerial1::tryReadOne() const
+void ReliableConnectionSerial1::begin()
 {
-  return Serial1.read();
+  if(!instance)
+  {
+    return;
+  }
+
+  uart_init(uart0, 115200);
+  gpio_set_function(0, GPIO_FUNC_UART);
+  gpio_set_function(1, GPIO_FUNC_UART);
+  delay(10); // Wait for initialization to take
+
+  irq_set_priority(UART0_IRQ, 0xFF);
+  irq_set_exclusive_handler(UART0_IRQ, uart0_handler);
+  irq_set_enabled(UART0_IRQ, true);
+  uart_set_irq_enables(uart0, true, false);
+
+  if(instance->xonXoffEnabled)
+  {
+    uart_putc_raw(uart0, XON);
+  }
 }
 
-char ReliableConnectionSerial1::readOne() const
+void ReliableConnectionSerial1::enableXonXoff()
 {
-  // Wait for serial port to be ready
-  while(!Serial1 || !Serial1.available())
-  {
-    delay(0.01);
-  }
-
-  int b = -1;
-  while(b == -1)
-  {
-    b = Serial1.read();
-  }
-
-  return (byte)b;
+  xonXoffEnabled = true;
 }
 
-std::vector<char> ReliableConnectionSerial1::read() const
+void ReliableConnectionSerial1::disableXonXoff()
 {
-  int available = Serial1.available();
-  if (available == 0)
-  {
-    return std::vector<char>();
-  }
+  xonXoffEnabled = false;
+}
 
-  int totalBytesRead = 0;
-  int lastBytesRead = 0;
-  int maxRetries = 10;
+int ReliableConnectionSerial1::tryReadOne()
+{
+  char c;
+  if(ring.get(c))
+  {
+    return c;
+  }
+  else
+  {
+    return -1;
+  }
+}
+
+char ReliableConnectionSerial1::readOne()
+{
+  char c;
+  if(ring.get(c))
+  {
+    return c;
+  }
+  else
+  {
+    return 0; // FIXME - no way to fail because we're supposed to block, but we can't block anymore
+  }
+}
+
+std::vector<char> ReliableConnectionSerial1::read()
+{
   std::vector<char> results = std::vector<char>();
-  while((available && (totalBytesRead < maxBufferSize)) || (lastBytesRead == maxReadSize))
+
+  // Drain the ring buffer
+  char c;
+  int count = 0;
+  while(ring.get(c) && count < 128)
   {
-    if(!available && (lastBytesRead == maxReadSize))
-    {
-      for(int retries = 0; retries < maxRetries; retries++)
-      {
-        delay((retries + 1) * 10);
-
-        available = Serial1.available();
-        if(!available)
-        {
-          if(Serial.read() != -1)
-          {
-            Serial.println('!');
-          }
-        }
-
-        Serial.println('@');
-
-        if(available)
-        {
-          break;
-        }
-      }
-    }
-
-    std::vector<char> bs = std::vector<char>(available);
-    int bytesRead = Serial1.readBytes(bs.data(), available);
-    lastBytesRead = bytesRead;
-
-    if(bytesRead)
-    {
-      results.insert(results.end(), bs.begin(), bs.begin() + bytesRead);
-      totalBytesRead += bytesRead;
-    }
-
-    available = Serial1.available();
+    results.push_back(c);
+    count++;
   }
 
-  Serial.println(available);
-  Serial.println(totalBytesRead);
-  Serial.println(maxBufferSize);
-  Serial.println(".");
+  if(paused && ring.shouldSendXON())
+  {
+    uart_putc_raw(uart0, 0x11); // XON
+    paused = false;
+  }
 
   return results;
 }
 
-bytes ReliableConnectionSerial1::read(int size) const
+bytes ReliableConnectionSerial1::read(int size)
 {
-  bytes r = bytes();
+  bytes results = bytes();
 
-  while(r.size() < size)
+  // Drain the ring buffer
+  char c;
+  int count = 0;
+  while(ring.get(c) && count < size)
   {
-    byte b = readOne();
-    r.push_back(b);
+    results.push_back(c);
+    count++;
   }
 
-  return r;
+  if(count < size)
+  {
+    results.resize(count);
+  }
+
+  return results;
 }
 
-void ReliableConnectionSerial1::write(std::vector<char> bs) const
+void ReliableConnectionSerial1::write(std::vector<char> bs)
 {
-  Serial1.write(bs.data(), bs.size()); // Send each byte
+  for(auto c : bs)
+  {
+    uart_putc_raw(uart0, c);
+  }
 }
-

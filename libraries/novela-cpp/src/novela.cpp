@@ -11,7 +11,7 @@
 
 Novela* Novela::instance = nullptr;
 
-Novela::Novela(Canvas& canvas, Connection& connection, Clock& clock, Logger& logger, Cursor *cursor) : canvas(canvas), connection(connection), clock(clock), logger(logger), cursor(cursor)
+Novela::Novela(Canvas& canvas, Connection* connection, Clock& clock, Logger& logger, Cursor *cursor) : canvas(canvas), connection(connection), clock(clock), logger(logger), cursor(cursor)
 {
   instance = this;
 }
@@ -70,11 +70,6 @@ void Novela::process(std::vector<char> bs)
   logger.debug("NovelaVterm::process");
 
   vterm_input_write(instance->vt, bs.data(), bs.size());
-
-  // for(auto c : bs)
-  // {
-  //   processCharacter(c);
-  // }
 }
 
 void Novela::processCharacter(char c)
@@ -428,7 +423,7 @@ void on_output(const char *cs, size_t len, void *user)
   }
 
   std::string s(cs, len);
-  Novela::instance->connection.write(s);
+  Novela::instance->connection->write(s);
 
   return;
 }

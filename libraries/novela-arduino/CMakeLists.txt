@@ -28,7 +28,9 @@ add_executable(novela-arduino ${NOVELA_FILES}
   src/soft_cursor.cpp
   src/soft_cursor.h
   src/ReliableConnectionUsbCdc.cpp
-  src/ReliableConnectionUsbCdc.h)
+  src/ReliableConnectionUsbCdc.h
+  src/serial_dma.cpp
+  src/serial_dma.h)
 add_dependencies(novela-arduino build_novela_arduino)
 target_link_libraries(novela-arduino PRIVATE novela-cpp)
 

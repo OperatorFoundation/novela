@@ -3,21 +3,43 @@
 
 #include <Connection.h>
 
+#include <ring_buffer.h>
+
 class ReliableConnectionSerial1 : public Connection
 {
   public:
-    ReliableConnectionSerial1();
+    static const char XON  = 0x11;
+    static const char XOFF = 0x13;
+
+    static const int maxBufferSize = 1024;
+    static const int maxReadSize = 32;
+
+    static ReliableConnectionSerial1* instance;
+
+    static ReliableConnectionSerial1* getInstance();
+    static void uart0_handler();
+
     ~ReliableConnectionSerial1() {}
 
-    int tryReadOne() const;
-    char readOne() const;
-    std::vector<char> read() const;
-    bytes read(int size) const;
-    void write(std::vector<char> bs) const;
+    void begin();
+	void enableXonXoff();
+    void disableXonXoff();
+
+    // Connection
+    int tryReadOne();
+    char readOne();
+    std::vector<char> read();
+    bytes read(int size);
+    void write(std::vector<char> bs);
+    // end Connection
 
 	private:
-		int maxBufferSize = 2048;
-		int maxReadSize = 31;
+		bool xonXoffEnabled = false;
+		FlowControlRingBuffer<char, maxBufferSize> ring;
+		volatile bool paused = false;
+		volatile bool buffer_full = false;
+
+		ReliableConnectionSerial1();
 };
 
 #endif

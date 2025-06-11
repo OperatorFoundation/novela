@@ -10,12 +10,12 @@ ReliableConnectionUsbCdc::ReliableConnectionUsbCdc()
 {
 }
 
-int ReliableConnectionUsbCdc::tryReadOne() const
+int ReliableConnectionUsbCdc::tryReadOne()
 {
   return Serial.read();
 }
 
-char ReliableConnectionUsbCdc::readOne() const
+char ReliableConnectionUsbCdc::readOne()
 {
   // Wait for serial port to be ready
   while(!Serial || !Serial.available())
@@ -32,7 +32,7 @@ char ReliableConnectionUsbCdc::readOne() const
   return (byte)b;
 }
 
-std::vector<char> ReliableConnectionUsbCdc::read() const
+std::vector<char> ReliableConnectionUsbCdc::read()
 {
   int available = Serial.available();
   if (available == 0)
@@ -48,7 +48,7 @@ std::vector<char> ReliableConnectionUsbCdc::read() const
   return bs;
 }
 
-bytes ReliableConnectionUsbCdc::read(int size) const
+bytes ReliableConnectionUsbCdc::read(int size)
 {
   bytes r = bytes();
 
@@ -61,7 +61,7 @@ bytes ReliableConnectionUsbCdc::read(int size) const
   return r;
 }
 
-void ReliableConnectionUsbCdc::write(std::vector<char> bs) const
+void ReliableConnectionUsbCdc::write(std::vector<char> bs)
 {
   Serial.write(bs.data(), bs.size()); // Send each byte
 }

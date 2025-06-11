@@ -13,11 +13,11 @@ class ReliableConnectionUsbCdc : public Connection
     ReliableConnectionUsbCdc();
     ~ReliableConnectionUsbCdc() {}
 
-    int tryReadOne() const;
-    char readOne() const;
-    std::vector<char> read() const;
-    bytes read(int size) const;
-    void write(std::vector<char> bs) const;
+    int tryReadOne();
+    char readOne();
+    std::vector<char> read();
+    bytes read(int size);
+    void write(std::vector<char> bs);
 };
 
 #endif //RELIABLECONNECTIONUSBCDC_H
