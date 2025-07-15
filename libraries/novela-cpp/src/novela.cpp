@@ -4,7 +4,7 @@
 
 #include "novela.h"
 
-#include "colors.h"
+#include <cstring>
 
 #define CHAR_WIDTH 8
 #define CHAR_HEIGHT 8
@@ -55,9 +55,9 @@ void Novela::begin()
     .movecursor = move_cursor,
     .settermprop = set_prop,
     .bell = bell_rung,
-    .resize = NULL,
-    .sb_pushline = NULL,
-    .sb_popline = NULL
+    .resize = NULL, // Not relevant since this is a fixed-size display
+    .sb_pushline = pushline,
+    .sb_popline = popline
   };
   vterm_screen_set_callbacks(screen, &screen_callbacks, NULL);
 
@@ -433,6 +433,80 @@ int move(VTermRect dest, VTermRect src, void *user)
   }
 
   return Novela::instance->canvas.move(src.start_col + 1, src.start_row + 1, src.end_col + 1, src.end_row + 1, dest.start_col + 1, dest.start_row + 1, dest.end_col + 1, dest.end_row + 1);
+}
+
+int pushline(int cols, const VTermScreenCell *cells, void *user)
+{
+  if(Novela::instance == nullptr)
+  {
+    return 0;
+  }
+
+  Novela::instance->logger.debugf("sb_pushline: saving line with %d cols", cols);
+
+  // Create a new scrollback line
+  ScrollbackLine line;
+  line.cols = cols;
+  line.cells = new VTermScreenCell[cols];
+
+  // Copy the cells
+  memcpy(line.cells, cells, cols * sizeof(VTermScreenCell));
+
+  // Add to scrollback buffer
+  Novela::instance->scrollback_buffer.push_back(line);
+
+  // Limit scrollback size (ESP32 has limited RAM)
+  if(Novela::instance->scrollback_buffer.size() > Novela::MAX_SCROLLBACK_LINES)
+  {
+    // Remove oldest line
+    delete[] Novela::instance->scrollback_buffer.front().cells;
+    Novela::instance->scrollback_buffer.erase(
+        Novela::instance->scrollback_buffer.begin()
+    );
+  }
+
+  return 1;
+}
+
+int popline(int cols, VTermScreenCell *cells, void *user)
+{
+  if(Novela::instance == nullptr)
+  {
+    return 0;
+  }
+
+  // Check if we have any lines in the scrollback buffer
+  if(Novela::instance->scrollback_buffer.empty())
+  {
+    Novela::instance->logger.debugf("sb_popline: no lines in scrollback");
+    return 0;  // No lines available
+  }
+
+  // Get the most recent line from scrollback
+  ScrollbackLine& line = Novela::instance->scrollback_buffer.back();
+
+  Novela::instance->logger.debugf("sb_popline: retrieving line with %d cols (requested %d)",
+      line.cols, cols);
+
+  // Copy the cells to the provided buffer
+  int copy_cols = (line.cols < cols) ? line.cols : cols;
+  memcpy(cells, line.cells, copy_cols * sizeof(VTermScreenCell));
+
+  // If the scrollback line was shorter than requested, fill the rest with blanks
+  if(line.cols < cols)
+  {
+    VTermScreenCell blank = {0};  // Initialize empty cell
+    for(int i = line.cols; i < cols; i++)
+    {
+      cells[i] = blank;
+    }
+  }
+
+  // Remove the line from scrollback buffer and free memory
+  delete[] line.cells;
+  Novela::instance->scrollback_buffer.pop_back();
+
+  return 1;  // Successfully popped a line
 }
 
 // End vterm event callbacks
