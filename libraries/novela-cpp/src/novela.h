@@ -63,6 +63,7 @@ class Novela
 };
 
 int redraw(VTermRect rect, void *user);
+int move(VTermRect dest, VTermRect src, void *user);
 int move_cursor(VTermPos pos, VTermPos oldpos, int visible, void *user);
 int bell_rung(void *user);
 int set_prop(VTermProp prop, VTermValue *val, void *user);

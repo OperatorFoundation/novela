@@ -51,7 +51,7 @@ void Novela::begin()
   // Set callbacks
   screen_callbacks = {
     .damage = redraw,
-    .moverect = NULL,
+    .moverect = move,
     .movecursor = move_cursor,
     .settermprop = set_prop,
     .bell = bell_rung,
@@ -279,10 +279,7 @@ int redraw(VTermRect rect, void *user)
       VTermScreenCell cell;
 
       // Get what should be at this position
-      if (vterm_screen_get_cell(Novela::instance->screen, pos, &cell) == 0)
-      {
-        continue;
-      }
+      int cellFilled = vterm_screen_get_cell(Novela::instance->screen, pos, &cell);
 
       // Set colors/attributes
       //if (cell.attrs.bold) Serial.print("\033[1m");
@@ -290,15 +287,15 @@ int redraw(VTermRect rect, void *user)
       //if (cell.attrs.reverse) Serial.print("\033[7m");
 
       // Print the character
-      if(cell.chars[0] == 0)
-      {
-        Novela::instance->logger.debugf("redraw:(empty) %d,%d", col, row);
-        Novela::instance->canvas.drawCharacter(col + 1, row + 1, ' ');
-      }
-      else
+      if(cellFilled && cell.chars[0] != 0)
       {
         Novela::instance->logger.debugf("redraw:%c %d,%d", cell.chars[0], col, row);
         Novela::instance->canvas.drawCharacter(col + 1, row + 1, cell.chars[0]);
+      }
+      else
+      {
+        Novela::instance->logger.debugf("redraw:(empty) %d,%d", col, row);
+        Novela::instance->canvas.drawCharacter(col + 1, row + 1, ' ');
       }
     }
   }
@@ -426,6 +423,16 @@ void on_output(const char *cs, size_t len, void *user)
   Novela::instance->connection->write(s);
 
   return;
+}
+
+int move(VTermRect dest, VTermRect src, void *user)
+{
+  if(Novela::instance == nullptr)
+  {
+    return 0;
+  }
+
+  return Novela::instance->canvas.move(src.start_col + 1, src.start_row + 1, src.end_col + 1, src.end_row + 1, dest.start_col + 1, dest.start_row + 1, dest.end_col + 1, dest.end_row + 1);
 }
 
 // End vterm event callbacks
