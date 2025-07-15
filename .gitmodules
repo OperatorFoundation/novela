@@ -1,12 +1,6 @@
 [submodule "lib/TransmissionArduino"]
 	path = lib/TransmissionArduino
 	url = https://github.com/OperatorFoundation/TransmissionArduino.git
-[submodule "lib/Adafruit_BusIO"]
-	path = lib/Adafruit_BusIO
-	url = https://github.com/adafruit/Adafruit_BusIO.git
-[submodule "lib/Adafruit_CPFS"]
-	path = lib/Adafruit_CPFS
-	url = https://github.com/adafruit/Adafruit_CPFS.git
 [submodule "lib/LovyanGFX"]
 	path = lib/LovyanGFX
 	url = https://github.com/lovyan03/LovyanGFX.git

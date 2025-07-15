@@ -1,14 +1,6 @@
-cmake_minimum_required(VERSION 3.31)
 project(novela-cpp-lib)
 
-set(CMAKE_CXX_STANDARD 17)
 enable_testing()
-
-# Compile novela-cpp library for local build machine architecture
-set(NOVELA_LIB_DIR ${CMAKE_SOURCE_DIR}/libraries/novela-cpp)
-set(NOVELA_LIB_SOURCE_DIR ${NOVELA_LIB_DIR}/src)
-set(VTERM_LIB_DIR ${CMAKE_SOURCE_DIR}/libraries/vterm)
-set(VTERM_LIB_SOURCE_DIR ${VTERM_LIB_DIR}/src)
 
 include_directories(${NOVELA_LIB_SOURCE_DIR}, ${VTERM_LIB_SOURCE_DIR})
 file(GLOB_RECURSE NOVELA_FILES ${NOVELA_LIB_SOURCE_DIR}/*.cpp)

@@ -34,6 +34,7 @@ SoftCursor cursor = SoftCursor(ticker, canvas, logger);
 Novela novela(canvas, serial1, ticker, logger, &cursor);
 
 int lastType = 0;
+int waitTime = 0;
 int counter = 0;
 bool tap = false;
 
@@ -108,10 +109,11 @@ void loop()
   }
   else
   {
-    if(millis() - lastType > 1333)
+    if(millis() - lastType > waitTime)
     {
       lastType = millis();
-      novela.process({counter + '0'});
+      waitTime = random(1, 100) * 3;
+      novela.process({static_cast<char>(random(32, 126))});
       counter = (counter + 1) % 10;
       novela.update();
     }
