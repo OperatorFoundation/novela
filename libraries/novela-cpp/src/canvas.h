@@ -14,6 +14,7 @@ class Canvas
   public:
     virtual ~Canvas() = default;
 
+    // In charcters
     virtual uint16_t getHeight() = 0;
     virtual uint16_t getWidth() = 0;
 

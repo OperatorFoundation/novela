@@ -6,6 +6,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory("libraries/novela-cpp")
 add_subdirectory("libraries/novela-arduino")
+add_subdirectory("libraries/novela-esp")
 add_subdirectory("libraries/vterm")
 add_subdirectory("novela-stdio")
 add_subdirectory("tests/")

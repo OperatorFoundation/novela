@@ -24,7 +24,8 @@ set(PORT "/dev/cu.usbmodem1101")
 set(OUTPUT_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/arduino/rp2350/novela-arduino)
 file(GLOB_RECURSE NOVELA_FILES ${NOVELA_LIB_SOURCE_DIR}/*.cpp ${NOVELA_ARDUINO_SOURCE_DIR}/*.cpp ${NOVELA_ARDUINO_SOURCE_DIR}/*.ino)
 
-add_executable(novela-arduino ${NOVELA_FILES})
+add_executable(novela-arduino ${NOVELA_FILES}
+  ../novela-esp/examples/novela-esp/gfx_conf.h)
 add_dependencies(novela-arduino build_novela_arduino)
 target_link_libraries(novela-arduino PRIVATE novela-cpp)
 
