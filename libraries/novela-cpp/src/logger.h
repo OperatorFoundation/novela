@@ -5,6 +5,10 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+
 #include <cstdarg>
 
 class Logger
