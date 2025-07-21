@@ -11,6 +11,9 @@ set(PORT "/dev/cu.wchusbserial110")
 
 set(OUTPUT_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/esp32s3/${NOVELA_ESP_SKETCH_NAME})
 
+set(REMOTE_HOST "brandon@bonnie.local")
+set(REMOTE_TEMP_DIR "/tmp/esp32_upload")
+
 add_custom_target(build_novela_esp ALL
         COMMAND arduino-cli compile
             --fqbn ${BOARD}
@@ -39,3 +42,23 @@ add_custom_target(upload_novela_esp
         COMMENT "Uploading novela-esp with arduino-cli"
 )
 add_dependencies(upload_novela_esp build_novela_esp)
+
+# Create remote upload target
+add_custom_target(remote_upload_novela_esp
+  # Create temp directory on Pi
+  COMMAND ssh ${REMOTE_HOST} "mkdir -p ${REMOTE_TEMP_DIR}"
+
+  # Copy binary to Pi
+  COMMAND scp ${OUTPUT_DIR} ${REMOTE_HOST}:${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bin
+
+  # Upload using arduino-cli on Pi
+  COMMAND ssh ${REMOTE_HOST} "arduino-cli upload --fqbn ${BOARD} --port ${PORT} --input-file ${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bin"
+
+  # Clean up temp file
+  COMMAND ssh ${REMOTE_HOST} "rm -f ${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bin"
+
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Uploading ${NOVELA_ESP_SKETCH_NAME} to ESP32 via ${REMOTE_HOST}"
+  VERBATIM
+)
+add_dependencies(remote_upload_novela_esp build_novela_esp)
