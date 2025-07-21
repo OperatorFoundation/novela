@@ -8,8 +8,10 @@ set(SKETCH_FILE ${NOVELA_ESP_DIR}/examples/${NOVELA_ESP_SKETCH_NAME}/${NOVELA_ES
 
 set(BOARD "esp32:esp32:esp32s3")
 set(PORT "/dev/cu.wchusbserial110")
+set(REMOTE_PORT "/dev/ttyUSB0")
 
 set(OUTPUT_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/esp32s3/${NOVELA_ESP_SKETCH_NAME})
+set(OUTPUT_FILE ${OUTPUT_DIR}/${NOVELA_ESP_SKETCH_NAME}.ino.bin)
 
 set(REMOTE_HOST "brandon@bonnie.local")
 set(REMOTE_TEMP_DIR "/tmp/esp32_upload")
@@ -49,10 +51,12 @@ add_custom_target(remote_upload_novela_esp
   COMMAND ssh ${REMOTE_HOST} "mkdir -p ${REMOTE_TEMP_DIR}"
 
   # Copy binary to Pi
-  COMMAND scp ${OUTPUT_DIR} ${REMOTE_HOST}:${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bin
+  COMMAND scp ${OUTPUT_DIR}/${NOVELA_ESP_SKETCH_NAME}.ino.bootloader.bin ${REMOTE_HOST}:${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bootloader.bin
+  COMMAND scp ${OUTPUT_DIR}/${NOVELA_ESP_SKETCH_NAME}.ino.partitions.bin ${REMOTE_HOST}:${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.partitions.bin
+  COMMAND scp ${OUTPUT_DIR}/${NOVELA_ESP_SKETCH_NAME}.ino.bin ${REMOTE_HOST}:${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bin
 
   # Upload using arduino-cli on Pi
-  COMMAND ssh ${REMOTE_HOST} "arduino-cli upload --fqbn ${BOARD} --port ${PORT} --input-file ${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bin"
+  COMMAND ssh ${REMOTE_HOST} "arduino-cli upload --fqbn ${BOARD} --port ${REMOTE_PORT} --input-file ${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bin"
 
   # Clean up temp file
   COMMAND ssh ${REMOTE_HOST} "rm -f ${REMOTE_TEMP_DIR}/${NOVELA_ESP_SKETCH_NAME}.bin"

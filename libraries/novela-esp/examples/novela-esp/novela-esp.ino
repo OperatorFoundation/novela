@@ -98,26 +98,26 @@ void loop()
     serial1->write(input);
 
     // FIXME - remove these debug lines
-    novela.process(input);
-    novela.update();
+    //novela.process(input);
+    //novela.update();
   }
 
   // FIXME - debugging, remove
-  if(lastType == 0)
-  {
-    lastType = millis();
-  }
-  else
-  {
-    if(millis() - lastType > waitTime)
-    {
-      lastType = millis();
-      waitTime = random(1, 100) * 3;
-      novela.process({static_cast<char>(random(32, 126))});
-      counter = (counter + 1) % 10;
-      novela.update();
-    }
-  }
+  //if(lastType == 0)
+  //{
+  //  lastType = millis();
+  //}
+  //else
+  //{
+  //  if(millis() - lastType > waitTime)
+  //  {
+  //    lastType = millis();
+  //    waitTime = random(1, 100) * 3;
+  //    novela.process({static_cast<char>(random(32, 126))});
+  //    counter = (counter + 1) % 10;
+  //    novela.update();
+  //  }
+  //}
 
   uint16_t touchX, touchY;
   bool isTouched = screen.getTouch(&touchX, &touchY);
