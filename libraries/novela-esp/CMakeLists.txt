@@ -31,7 +31,7 @@ add_custom_target(build_novela_esp ALL
         COMMENT "Building novela-esp with arduino-cli"
 )
 
-add_custom_target(upload_novela_esp ALL
+add_custom_target(upload_novela_esp
         COMMAND arduino-cli upload
         -p ${PORT}
         --fqbn ${BOARD}
