@@ -9,8 +9,6 @@ include_directories(${NOVELA_LIB_SOURCE_DIR}
 
 file(GLOB_RECURSE NOVELA_FILES 
   ${NOVELA_LIB_SOURCE_DIR}/*.cpp
-  ${VTERM_LIB_SOURCE_DIR}
-  ${TRANSMISSION_LIB_DIR}/src
 )
 add_library(novela-cpp STATIC ${NOVELA_FILES})
 

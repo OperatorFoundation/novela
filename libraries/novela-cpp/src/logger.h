@@ -23,7 +23,7 @@ class Logger
       FATAL = 5
     };
 
-    ~Logger() = default;
+    virtual ~Logger() = default;
 
     void info(const char *);
     void infof(const char *, ...);

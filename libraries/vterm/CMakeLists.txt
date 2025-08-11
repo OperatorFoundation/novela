@@ -9,6 +9,12 @@ set(BOARD "esp32:esp32:esp32s3")
 set(OUTPUT_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/arduino/esp32s3/vterm)
 file(GLOB_RECURSE VTERM_FILES ${VTERM_LIB_SOURCE_DIR}/*.c)
 
+add_library(vterm STATIC ${VTERM_FILES})
+target_include_directories(vterm PUBLIC
+  ${VTERM_LIB_SOURCE_DIR}
+  src/
+)
+
 add_custom_target(build_vterm arduino-cli compile
             --fqbn ${BOARD}
             --output-dir ${OUTPUT_DIR}

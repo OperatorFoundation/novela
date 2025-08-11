@@ -53,3 +53,7 @@ void Logger::log(Level logLevel, const char *cs)
     write(cs);
   }
 }
+
+void Logger::write(const char *cs)
+{
+}

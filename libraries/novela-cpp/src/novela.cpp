@@ -188,7 +188,7 @@ void Novela::processCharacter(char c)
     case Mode::OSC:
       buffer.push_back(c);
 
-      if((c == 0x07)) // BEL
+      if(c == 0x07) // BEL
       {
         mode = Mode::NORMAL;
         vterm_input_write(instance->vt, buffer.data(), buffer.size());
@@ -370,6 +370,7 @@ int set_prop(VTermProp prop, VTermValue *val, void *user)
       {
         Novela::instance->cursor->setBlinking(val->boolean);
       }
+      break;
 
     case VTERM_PROP_TITLE:
     {
