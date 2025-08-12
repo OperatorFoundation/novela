@@ -1,6 +1,6 @@
 project(novela-macos)
 
-include_directories(${NOVELA_LIB_SOURCE_DIR} ${NOVELA_SDL_SOURCE_DIR} ${GFX_DIR} ${TRANSMISSION_MACOS_DIR}/src)
+include_directories(${NOVELA_LIB_SOURCE_DIR} ${NOVELA_SDL_SOURCE_DIR} ${GFX_DIR} ${TRANSMISSION_MACOS_DIR}/src ${NOVELA_SDL_SOURCE_DIR})
 
 add_executable(novela-macos
   src/main.cpp
@@ -18,6 +18,8 @@ target_link_libraries(novela-macos
   novela-cpp
   vterm
   transmission-macos
+  caneta-sdl
+  sdl2
 )
 
 target_compile_features(novela-macos PUBLIC cxx_std_17)

@@ -5,7 +5,7 @@
 #include "sdl_cursor.h"
 #include "lgfx_sdl_canvas.h"
 
-SDLCursor::SDLCursor(Clock& clock, Canvas& canvas, Logger& logger, lgfx::LGFX_Device* screen)
+SDLCursor::SDLCursor(Clock& clock, Canvas& canvas, Logger& logger, LGFX* screen)
     : Cursor(clock), canvas(canvas), logger(logger), gfx_screen(screen)
 {
     initializeFontMetrics();
@@ -20,26 +20,14 @@ SDLCursor::SDLCursor(Clock& clock, Canvas& canvas, Logger& logger, lgfx::LGFX_De
 void SDLCursor::initializeFontMetrics()
 {
     if (gfx_screen) {
-        // Calculate character size based on canvas grid and screen size
-        uint16_t canvas_width_chars = canvas.getWidth();
-        uint16_t canvas_height_chars = canvas.getHeight();
-
-        if (canvas_width_chars > 0 && canvas_height_chars > 0) {
-            char_width = gfx_screen->width() / canvas_width_chars;
-            char_height = gfx_screen->height() / canvas_height_chars;
-        } else {
-            // Fallback to font metrics
-            gfx_screen->setFont(&fonts::Font2);
-            gfx_screen->setTextSize(1);
-            char_width = gfx_screen->textWidth("M");
-            char_height = gfx_screen->fontHeight();
-        }
-
-        logger.debugf("SDLCursor: Final metrics - width: %d, height: %d", char_width, char_height);
+        char_width = gfx_screen->textWidth("M");  // This should match the canvas font
+        char_height = gfx_screen->fontHeight();   // This should match the canvas font
 
         // Allocate buffer for saving cursor area
         size_t buffer_size = char_width * char_height;
         saved_pixels = new uint16_t[buffer_size];
+
+        logger.debugf("SDLCursor: Font metrics - width: %d, height: %d", char_width, char_height);
     }
 }
 
@@ -173,4 +161,19 @@ void SDLCursor::move()
     logger.debugf("SDLCursor::move->(%d,%d)", col, row);
     // Move is typically handled by hide() at old position, then show() at new position
     // The base class handles this logic in setPosition()
+}
+
+// New methods required by the refactored Cursor API
+void SDLCursor::doSaveUnder()
+{
+    // This is called by the base class before showing the cursor
+    // Your existing saveCursorArea() already does this
+    saveCursorArea();
+}
+
+void SDLCursor::doRestoreUnder()
+{
+    // This is called by the base class after hiding the cursor
+    // Your existing restoreCursorArea() already does this
+    restoreCursorArea();
 }
