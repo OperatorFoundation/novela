@@ -7,9 +7,8 @@
 
 #include <canvas.h>
 
-#include <LovyanGFX.h>
-
-#include <cstdint>
+#define LGFX_USE_V1
+#include <LGFX_AUTODETECT.hpp>
 
 namespace TerminalColors
 {
@@ -34,7 +33,7 @@ class LGFXSDLCanvas : public Canvas
     LGFXSDLCanvas();
     ~LGFXSDLCanvas();
 
-    bool begin(lgfx::LGFX_Device *newScreen);
+    bool begin(LGFX *newScreen);
     void end();
     void swap(bool copy_framebuffer);
 
@@ -54,7 +53,7 @@ class LGFXSDLCanvas : public Canvas
     void nextTheme();
 
   private:
-    lgfx::LGFX_Device *screen = nullptr;
+    LGFX *screen = nullptr;
 
     // In pixels - these are just default values, depends on font
     unsigned int char_height = 20;

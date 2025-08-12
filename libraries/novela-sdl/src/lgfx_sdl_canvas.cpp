@@ -5,6 +5,7 @@
 #include "lgfx_sdl_canvas.h"
 
 #include <iostream>
+#include <LGFX_AUTODETECT.hpp>
 
 LGFXSDLCanvas::LGFXSDLCanvas() {}
 
@@ -13,9 +14,10 @@ LGFXSDLCanvas::~LGFXSDLCanvas()
   end();
 }
 
-bool LGFXSDLCanvas::begin(lgfx::LGFX_Device* newScreen)
+bool LGFXSDLCanvas::begin(LGFX* newScreen)
 {
   screen = newScreen;
+
   screen->setFont(&fonts::Font2);
   screen->setTextSize(1);
   screen->setTextWrap(false);
@@ -23,6 +25,14 @@ bool LGFXSDLCanvas::begin(lgfx::LGFX_Device* newScreen)
 
   char_width = screen->textWidth("M");
   char_height = screen->fontHeight();
+
+  lgfx::Panel_sdl::setShortcutKeymod(KMOD_LGUI);  // Left Command key on macOS
+  auto* panel = screen->getPanel();
+  if (panel) {
+    auto* sdl_panel = static_cast<lgfx::Panel_sdl*>(panel);
+    sdl_panel->setWindowTitle("Curiosa Novela");
+    sdl_panel->setScaling(2, 2);  // 2x scaling
+  }
 
   return true;
 }

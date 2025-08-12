@@ -8,8 +8,8 @@ add_executable(novela-macos
   src/system_clock.h
   src/console_logger.cpp
   src/console_logger.h
-  src/sdl_cursor.cpp
-  src/sdl_cursor.h
+  ../libraries/novela-sdl/src/sdl_cursor.cpp
+  ../libraries/novela-sdl/src/sdl_cursor.h
 )
 
 target_link_libraries(novela-macos
