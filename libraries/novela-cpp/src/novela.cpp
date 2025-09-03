@@ -37,7 +37,11 @@ void Novela::begin()
 
   // Get screen interface
   screen = vterm_obtain_screen(vt);
-  cursor->setScreen(screen);
+
+  if(cursor)
+  {
+    cursor->setScreen(screen);
+  }
 
   bell.emplace(Bell(canvas, clock));
 

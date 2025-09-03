@@ -26,11 +26,6 @@ class SDLCursor : public Cursor
     // Required virtual methods from Cursor base class
     void show() override;
     void hide() override;
-    void move() override;
-
-    // New methods required by refactored Cursor API
-    void doSaveUnder() override;
-    void doRestoreUnder() override;
 
   private:
     Canvas& canvas;

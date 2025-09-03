@@ -9,7 +9,6 @@
 #include <clock.h>
 #include <canvas.h>
 #include <logger.h>
-#include <vterm.h>
 
 class SoftCursor : public Cursor
 {
@@ -18,7 +17,6 @@ class SoftCursor : public Cursor
 
     void show() override;
     void hide() override;
-    void move() override;
 
   private:
     Canvas& canvas;

@@ -7,6 +7,7 @@
 #include <novela.h>
 #include <ReliableConnectionMacOS.h>
 #include <sdl_cursor.h>
+#include <soft_cursor.h>
 #include <lgfx_sdl_canvas.h>
 
 #include <caneta_sdl.h>
@@ -25,7 +26,7 @@ LGFXSDLCanvas canvas = LGFXSDLCanvas();
 ReliableConnectionMacOS* serial = nullptr;
 SystemClock ticker = SystemClock();
 ConsoleLogger logger = ConsoleLogger();
-SDLCursor* cursor = nullptr;
+Cursor* cursor = nullptr;
 Novela* novela = nullptr;
 
 // Caneta keyboard handling
@@ -187,7 +188,7 @@ void setup()
 
     std::cout << "Serial initialized" << std::endl;
 
-    logger.setLevel(Logger::Level::INFO);
+    logger.setLevel(Logger::Level::DEBUG);
     std::cout << "Logger initialized" << std::endl;
 
     screen.init();
@@ -200,6 +201,13 @@ void setup()
     keyboard = new caneta::SDLToHID();
     keyboard->setReportCallback(process_hid_report);
     std::cout << "Keyboard initialized" << std::endl;
+
+    // cursor = new SoftCursor(ticker, canvas, logger);
+    // cursor = new SDLCursor(ticker, canvas, logger, &screen);
+    // cursor->setBlinking(false);
+    // cursor->setVisible(false);
+
+    novela = new Novela(canvas, serial, ticker, logger, nullptr);
 
     // Call this last to ensure that everything is initialized before we start up the terminal.
     novela->begin();
@@ -350,8 +358,6 @@ int main(int argc, char* argv[])
 
     // Initialize global objects with the device path
     serial = new ReliableConnectionMacOS(device_path);
-    cursor = new SDLCursor(ticker, canvas, logger, &screen);
-    novela = new Novela(canvas, serial, ticker, logger, cursor);
 
     return lgfx::Panel_sdl::main(user_func);
 }

@@ -4,8 +4,6 @@
 
 #include "soft_cursor.h"
 
-#include <Arduino.h>
-
 SoftCursor::SoftCursor(Clock& clock, Canvas& canvas, Logger& logger) : Cursor(clock), canvas(canvas), logger(logger) {}
 
 void SoftCursor::show()
@@ -41,10 +39,4 @@ void SoftCursor::hide()
   // Fallback case if anything above fails
   logger.debugf("SoftCursor::hide fallback", col, row);
   canvas.drawCharacter(col, row, ' ');
-}
-
-void SoftCursor::move()
-{
-  logger.debugf("SoftCursor::move->(%d,%d)", col, row);
-  canvas.drawCharacter(col, row, '\xDB');
 }

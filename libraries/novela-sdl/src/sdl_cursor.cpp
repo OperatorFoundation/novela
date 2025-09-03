@@ -27,7 +27,7 @@ void SDLCursor::initializeFontMetrics()
         size_t buffer_size = char_width * char_height;
         saved_pixels = new uint16_t[buffer_size];
 
-        logger.debugf("SDLCursor: Font metrics - width: %d, height: %d", char_width, char_height);
+        printf("SDLCursor: Font metrics - width: %d, height: %d", char_width, char_height);
     }
 }
 
@@ -133,47 +133,5 @@ void SDLCursor::hide()
 {
     logger.debugf("SDLCursor::hide@(%d,%d)", col, row);
 
-    // Restore the saved content, or redraw the character if we don't have saved content
-    if (has_saved_content) {
-        restoreCursorArea();
-    } else {
-        // Fallback: redraw the character that should be at this position
-        if (screen) {
-            VTermScreenCell cell;
-            VTermPos pos = {.row = row, .col = col};
-
-            int result = vterm_screen_get_cell(screen, pos, &cell);
-            if (result && cell.chars[0]) {
-                logger.debugf("SDLCursor::hide - redrawing char: %c", cell.chars[0]);
-                canvas.drawCharacter(col, row, cell.chars[0]);
-                return;
-            }
-        }
-
-        // Ultimate fallback: clear the area
-        logger.debug("SDLCursor::hide - fallback clear");
-        canvas.drawCharacter(col, row, ' ');
-    }
-}
-
-void SDLCursor::move()
-{
-    logger.debugf("SDLCursor::move->(%d,%d)", col, row);
-    // Move is typically handled by hide() at old position, then show() at new position
-    // The base class handles this logic in setPosition()
-}
-
-// New methods required by the refactored Cursor API
-void SDLCursor::doSaveUnder()
-{
-    // This is called by the base class before showing the cursor
-    // Your existing saveCursorArea() already does this
-    saveCursorArea();
-}
-
-void SDLCursor::doRestoreUnder()
-{
-    // This is called by the base class after hiding the cursor
-    // Your existing restoreCursorArea() already does this
     restoreCursorArea();
 }
